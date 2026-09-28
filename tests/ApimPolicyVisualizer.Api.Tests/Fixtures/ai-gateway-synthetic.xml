@@ -1,0 +1,195 @@
+<!--
+    Synthetic effective policy for tests. Every name, key and value is invented; it reproduces only the
+    structural shape of an ARM format=xml effective policy for an AI gateway API.
+-->
+<policies>
+	<inbound>
+		<base />
+		<!-- Step 1: Allow browser callers -->
+		<!--include-fragment: Begin cors-policy policy fragment scope-->
+		<cors allow-credentials="false">
+			<allowed-origins>
+				<origin>https://portal.example.test</origin>
+			</allowed-origins>
+			<allowed-methods>
+				<method>GET</method>
+				<method>POST</method>
+			</allowed-methods>
+		</cors>
+		<!--include-fragment: End cors-policy policy fragment scope-->
+		<!-- Step 2: Require a subscription -->
+		<!--include-fragment: Begin subscription-guard policy fragment scope-->
+		<choose>
+			<when condition="@(context.Subscription == null)">
+				<return-response>
+					<set-status code="401" reason="Unauthorized" />
+					<set-header name="WWW-Authenticate" exists-action="override">
+						<value>Bearer</value>
+					</set-header>
+				</return-response>
+			</when>
+		</choose>
+		<!--include-fragment: End subscription-guard policy fragment scope-->
+		<!-- Step 3: Authenticate caller -->
+		<!--include-fragment: Begin caller-authentication policy fragment scope-->
+		<!--
+			Fragment: Caller authentication
+			Purpose: validates the bearer token issued by the example identity provider.
+		-->
+		<validate-jwt header-name="Authorization" failed-validation-httpcode="401" failed-validation-error-message="Unauthorized" output-token-variable-name="callerToken">
+			<openid-config url="https://login.example.test/.well-known/openid-configuration" />
+			<audiences>
+				<audience>api://example-gateway</audience>
+			</audiences>
+			<required-claims>
+				<claim name="roles" match="any">
+					<value>Gateway.Invoke</value>
+				</claim>
+			</required-claims>
+		</validate-jwt>
+		<!--include-fragment: End caller-authentication policy fragment scope-->
+		<!-- Step 4: Validate model -->
+		<!--include-fragment: Begin model-resolution policy fragment scope-->
+		<set-variable name="requestedModel" value="@{&#xD;&#xA;  try {&#xD;&#xA;    if (context.Request.Method == &amp;quot;GET&amp;quot;) { return &amp;quot;none&amp;quot;; }&#xD;&#xA;    var fromQuery = context.Request.Url.Query.GetValueOrDefault(&amp;quot;model&amp;quot;, &amp;quot;&amp;quot;);&#xD;&#xA;    if (!string.IsNullOrEmpty(fromQuery)) { return fromQuery; }&#xD;&#xA;    var path = context.Request.OriginalUrl.Path;&#xD;&#xA;    if (path.Contains(&amp;quot;/deployments/&amp;quot;)) { return path.Split('/')[3]; }&#xD;&#xA;    if (path.EndsWith(&amp;quot;/models&amp;quot;)) { return &amp;quot;catalog&amp;quot;; }&#xD;&#xA;    var fromHeader = context.Request.Headers.GetValueOrDefault(&amp;quot;x-model&amp;quot;, &amp;quot;&amp;quot;);&#xD;&#xA;    if (fromHeader != &amp;quot;&amp;quot;) { return fromHeader; }&#xD;&#xA;    var body = context.Request.Body?.As&amp;lt;JObject&amp;gt;(preserveContent: true);&#xD;&#xA;    if (body != null &amp;amp;&amp;amp; body[&amp;quot;model&amp;quot;] != null) { return body[&amp;quot;model&amp;quot;].ToString(); }&#xD;&#xA;    return &amp;quot;&amp;quot;;&#xD;&#xA;  } catch { return &amp;quot;&amp;quot;; }&#xD;&#xA;}" />
+		<!--include-fragment: End model-resolution policy fragment scope-->
+		<!-- Step 5: Enforce model allow-list -->
+		<!--include-fragment: Begin model-allowlist policy fragment scope-->
+		<choose>
+			<when condition="@(string.IsNullOrEmpty((string)context.Variables[&amp;quot;requestedModel&amp;quot;]))">
+				<return-response>
+					<set-status code="400" reason="Bad Request" />
+					<set-body>{"error":"model is required"}</set-body>
+				</return-response>
+			</when>
+			<when condition="@(!&amp;quot;{{allowed-models}}&amp;quot;.Contains((string)context.Variables[&amp;quot;requestedModel&amp;quot;]))">
+				<return-response>
+					<set-status code="404" reason="Not Found" />
+				</return-response>
+			</when>
+		</choose>
+		<!--include-fragment: End model-allowlist policy fragment scope-->
+		<!-- Step 6: Maintenance gate -->
+		<!--include-fragment: Begin maintenance-gate policy fragment scope-->
+		<choose>
+			<when condition="@(context.Variables.GetValueOrDefault&amp;lt;bool&amp;gt;(&amp;quot;maintenanceMode&amp;quot;, false))">
+				<return-response>
+					<set-status code="503" reason="Service Unavailable" />
+				</return-response>
+			</when>
+		</choose>
+		<!--include-fragment: End maintenance-gate policy fragment scope-->
+		<!-- Step 7: Responses ownership -->
+		<!--include-fragment: Begin responses-ownership policy fragment scope-->
+		<cache-lookup-value key="@(&amp;quot;responses-owner-&amp;quot; + context.Request.MatchedParameters.GetValueOrDefault(&amp;quot;responseId&amp;quot;, &amp;quot;&amp;quot;))" variable-name="responseOwner" caching-type="internal" />
+		<choose>
+			<when condition="@(context.Variables.ContainsKey(&amp;quot;responseOwner&amp;quot;) &amp;amp;&amp;amp; (string)context.Variables[&amp;quot;responseOwner&amp;quot;] != context.Subscription.Id)">
+				<return-response>
+					<set-status code="403" reason="Forbidden" />
+				</return-response>
+			</when>
+		</choose>
+		<!--include-fragment: End responses-ownership policy fragment scope-->
+		<!-- Step 8: Token budget -->
+		<!--include-fragment: Begin token-budget policy fragment scope-->
+		<llm-token-limit counter-key="@(context.Subscription.Id)" tokens-per-minute="5000" estimate-prompt-tokens="true" remaining-tokens-variable-name="remainingTokens" />
+		<!--include-fragment: End token-budget policy fragment scope-->
+		<!-- Step 9: Route to backend pool -->
+		<!--include-fragment: Begin backend-routing policy fragment scope-->
+		<set-variable name="backendPool" value="@(&amp;quot;{{default-backend-pool}}&amp;quot;)" />
+		<choose>
+			<when condition="@(((string)context.Variables[&amp;quot;requestedModel&amp;quot;]).StartsWith(&amp;quot;gpt-&amp;quot;))">
+				<set-backend-service backend-id="@((string)context.Variables[&amp;quot;backendPool&amp;quot;])" />
+			</when>
+			<when condition="@((string)context.Variables[&amp;quot;backendPool&amp;quot;] == &amp;quot;pool-b&amp;quot;)" />
+			<otherwise>
+				<set-backend-service backend-id="fallback-pool" />
+			</otherwise>
+		</choose>
+		<!--include-fragment: End backend-routing policy fragment scope-->
+		<!-- Step 10: Request headers -->
+		<!--include-fragment: Begin request-headers policy fragment scope-->
+		<!--include-fragment: Begin correlation-id policy fragment scope-->
+		<set-header name="x-correlation-id" exists-action="skip">
+			<value>@(context.RequestId.ToString())</value>
+		</set-header>
+		<!--include-fragment: End correlation-id policy fragment scope-->
+		<choose>
+			<when condition="@(context.Request.Method == &amp;quot;POST&amp;quot;)">
+				<send-request mode="new" response-variable-name="auditResponse" timeout="5" ignore-error="true">
+					<set-url>https://audit.example.test/events</set-url>
+					<set-method>POST</set-method>
+				</send-request>
+			</when>
+		</choose>
+		<trace source="example-gateway" severity="information">
+			<message>request accepted</message>
+		</trace>
+		<!--include-fragment: End request-headers policy fragment scope-->
+		<!-- Step 11: Legacy quota (disabled) -->
+		<!-- <include-fragment fragment-id="legacy-quota" /> -->
+		<example-telemetry-probe mode="basic" />
+	</inbound>
+	<backend>
+		<!-- Step 12: Call the model backend with retries -->
+		<retry condition="@(context.Response.StatusCode == 429 || (context.Response.StatusCode &amp;gt;= 500 &amp;amp;&amp;amp; !context.Response.StatusReason.Contains(&amp;quot;Backend pool&amp;quot;)))" count="2" interval="1" max-interval="8" delta="1" first-fast-retry="true">
+			<!--include-fragment: Begin backend-auth policy fragment scope-->
+			<!--
+				Fragment: Backend authentication
+				Purpose: obtains a managed identity token for the model backend.
+			-->
+			<authentication-managed-identity resource="https://models.example.test" output-token-variable-name="backendToken" />
+			<!--include-fragment: End backend-auth policy fragment scope-->
+			<!--include-fragment: Begin backend-attempt-log policy fragment scope-->
+			<set-variable name="attempt" value="@(context.Variables.GetValueOrDefault&amp;lt;int&amp;gt;(&amp;quot;attempt&amp;quot;, 0) + 1)" />
+			<emit-metric name="backend-attempts" value="1">
+				<dimension name="model" />
+			</emit-metric>
+			<!--include-fragment: End backend-attempt-log policy fragment scope-->
+			<forward-request timeout="120" buffer-response="false" />
+		</retry>
+	</backend>
+	<outbound>
+		<base />
+		<!-- Step 13: Remember response ownership -->
+		<!--include-fragment: Begin response-cache-store policy fragment scope-->
+		<cache-store-value key="@(&amp;quot;responses-owner-&amp;quot; + context.Response.Headers.GetValueOrDefault(&amp;quot;x-response-id&amp;quot;, &amp;quot;&amp;quot;))" value="@(context.Subscription.Id)" duration="3600" caching-type="internal" />
+		<!--include-fragment: End response-cache-store policy fragment scope-->
+		<!-- Step 14: Response headers -->
+		<!--include-fragment: Begin set-response-headers policy fragment scope-->
+		<set-header name="x-served-by" exists-action="override">
+			<value>example-gateway</value>
+		</set-header>
+		<set-header name="x-powered-by" exists-action="delete" />
+		<!--include-fragment: End set-response-headers policy fragment scope-->
+	</outbound>
+	<on-error>
+		<base />
+		<!--include-fragment: Begin set-response-headers policy fragment scope-->
+		<set-header name="x-served-by" exists-action="override">
+			<value>example-gateway</value>
+		</set-header>
+		<set-header name="x-powered-by" exists-action="delete" />
+		<!--include-fragment: End set-response-headers policy fragment scope-->
+		<!-- Step 15: Shape errors -->
+		<!--include-fragment: Begin error-shaping policy fragment scope-->
+		<choose>
+			<when condition="@(context.Response.StatusCode == 429)">
+				<emit-metric name="throttled-requests" value="1">
+					<dimension name="stage" value="on-error" />
+				</emit-metric>
+				<set-header name="Retry-After" exists-action="override">
+					<value>10</value>
+				</set-header>
+			</when>
+			<when condition="@(context.LastError.Reason == &amp;quot;BackendConnectionFailure&amp;quot;)">
+				<return-response>
+					<set-status code="500" reason="Internal Server Error" />
+				</return-response>
+			</when>
+		</choose>
+		<set-body>@{
+  return new JObject(new JProperty(&amp;quot;error&amp;quot;, context.LastError.Message)).ToString();
+}</set-body>
+		<!--include-fragment: End error-shaping policy fragment scope-->
+	</on-error>
+</policies>

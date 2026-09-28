@@ -1,0 +1,13 @@
+{
+  "taskId": "UI-5",
+  "taskDigest": "6f6faa5af1a70a7c94f6e81ed2736c926f4e6026f57ccd381f310bbcf53a0b8b",
+  "reviewer": "Nabeel",
+  "reviewedAt": "2026-09-24T17:01:55.338Z",
+  "decision": "approved",
+  "evidence": [
+    {
+      "path": "docs/reviews/UI-5-console-review.md",
+      "sha256": "0cb8e2d15ec687af4d4a6a721299accb3f913e9cb98d36d6476dc9eea9360605"
+    }
+  ]
+}

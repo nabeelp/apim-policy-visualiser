@@ -1,0 +1,17 @@
+{
+  "harness": "copilot",
+  "granularity": "",
+  "concurrency": "",
+  "taskTimeoutMs": "1200000",
+  "maxRetries": "",
+  "viz": false,
+  "vizPort": "",
+  "keepAlive": false,
+  "attach": "",
+  "logHarnessActivity": true,
+  "executionMode": "auto",
+  "selectionScope": "single",
+  "selectedTaskIds": [
+    "APIM-1"
+  ]
+}

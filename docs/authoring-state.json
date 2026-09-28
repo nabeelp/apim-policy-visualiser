@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "stages": {
+    "prd": {
+      "status": "complete",
+      "inputFingerprint": "e608a8691b64f867a9c4ec3072349e4093b7582443e2e463bfc2ce8ba257809d",
+      "outputs": [
+        "docs/features/policy-visualizer-enhancements.md"
+      ],
+      "startedAt": "2026-09-25T12:02:29.872Z",
+      "invocation": {
+        "runner": "copilot",
+        "source": "inherit",
+        "runnerSource": "inherit",
+        "argv": [
+          "-p",
+          "/forge-build-feature-prd I want to add Use the feature details documented in docs\\features\\visualizer-enhancements.md to this project. Analyze the existing PRD, features, codebase and team. Author the new canonical feature under docs/features/ and register it in the PRD feature table with exact dependency names. Preserve existing feature definitions and task IDs; reuse shared canonical requirements via version-2 contracts. Do not generate agents or skills, compile a manifest, or start the workflow engine. Author bounded executable tasks inside Phase N headings, not one task per roadmap increment. Separate independently testable behaviors and ownership boundaries; retain atomic safety invariants together. Name concrete output files and validation commands covering every touched surface, including UI and infrastructure. Separate human rubric scores and sign-off into dependent human-review tasks. References and outputs must not overlap. Review each task against forge-build-prd/references/task-contract.md.",
+          "--yolo"
+        ],
+        "skill": "forge-build-feature-prd"
+      },
+      "outputFingerprint": "f24257a0a19a1e97bae7dabcebaa28e77d443ca51ef9f12904bf2c37f206e1a1",
+      "completedAt": "2026-09-25T12:19:33.556Z"
+    },
+    "team": {
+      "status": "complete",
+      "inputFingerprint": "8a3beff3e0c0b19dec0d56dc413288d378520ff65f337a6fdefeab4da3f901ce",
+      "outputs": [
+        ".github\\agents",
+        "docs/SKILL-CANDIDATES.json"
+      ],
+      "startedAt": "2026-09-25T12:50:21.029Z",
+      "invocation": {
+        "runner": "copilot",
+        "source": "inherit",
+        "runnerSource": "inherit",
+        "argv": [
+          "-p",
+          "/forge-build-agent-team Use docs/PRD.md + docs/features/*.md to build the agent team. Write agent files under .github/agents/. Write docs/SKILL-CANDIDATES.json as {version:1,candidates:[]}, with each candidate containing name, description, consumers (agent-name strings), action (reuse, extend, create, or omit), and reason. Every agent description must be a single-line, double-quoted YAML value; never use description: >, description: |, or a multiline description. Analyze the PRD for reusable, repeated, or fragile project-specific processes. Add a candidate with action create when a needed process has no suitable package, extend when an existing package needs additive guidance, reuse when an existing package satisfies it, or omit when the responsibility is not justified. Keep candidates empty only when no project skills are required. Plan references under .github/skills/ but do not create or modify skill packages; forge-build-project-skills owns them. Do not write a manifest, compiled responsibility matrix, engine state, or progress file, and do not start the build. Auto-proceed with default assumptions and no questions.",
+          "--yolo"
+        ],
+        "skill": "forge-build-agent-team"
+      },
+      "outputFingerprint": "32d79781e9c8459f61c5fdb35bc7ddd6bd382dc906965750cd12bdec7faa8bfd",
+      "completedAt": "2026-09-25T12:51:22.049Z"
+    },
+    "skills": {
+      "status": "complete",
+      "inputFingerprint": "a03e33ece7199a5e34ca5294435ac3c3951d6db58b6a9083d0bbd941d53aae70",
+      "outputs": [
+        ".github\\skills\\azure-arm-authenticated-client\\SKILL.md",
+        ".github\\skills\\policy-xml-flow-graph-modeling\\SKILL.md",
+        ".github\\skills\\apim-display-text-lenient-parsing\\SKILL.md",
+        ".github\\skills\\sanitized-diagram-export\\SKILL.md"
+      ],
+      "startedAt": "2026-09-25T12:57:16.046Z",
+      "invocation": {
+        "runner": "copilot",
+        "source": "inherit",
+        "runnerSource": "inherit",
+        "argv": [
+          "-p",
+          "/forge-build-project-skills Consume docs/SKILL-CANDIDATES.json. Use .github/skills/ and .github/agents/. Create or extend only planned skills, reuse unchanged packages, honor omit decisions, and run structural and per-axis review gates. Do not regenerate the team, modify its ownership or handoff, compile a manifest, or start the build. Headless: proceed with authorized defaults.",
+          "--yolo"
+        ],
+        "skill": "forge-build-project-skills"
+      },
+      "outputFingerprint": "a3bb946a73a96006a5866a13143d5ea62ea78987cb7a43069f347b5dfb5874e6",
+      "completedAt": "2026-09-25T13:02:07.785Z",
+      "noSkillsRequired": false
+    }
+  }
+}

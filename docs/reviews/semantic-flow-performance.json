@@ -1,0 +1,117 @@
+{
+  "generatedAt": "2026-09-26T09:12:17.741Z",
+  "requirement": "SPF-NF-01 / SPF-SEC-01 / SPF-A11Y-01",
+  "machine": {
+    "platform": "win32 10.0.26200",
+    "cpu": "AMD EPYC 7763 64-Core Processor                ",
+    "logicalCores": 4,
+    "memoryGiB": 16,
+    "browser": "Microsoft Edge 153.0.4234.48 (headless)",
+    "viewport": "1440x900"
+  },
+  "fixture": {
+    "scope": "apis/large",
+    "overviewNodes": 239,
+    "toggleScope": "apis/example",
+    "toggleMaxVisibleNodes": 34
+  },
+  "budgetsMs": {
+    "overviewMs": 2000,
+    "toggleMs": 500,
+    "searchMs": 200
+  },
+  "results": {
+    "overview": {
+      "runs": 20,
+      "p50": 564,
+      "p95": 704,
+      "max": 1060,
+      "raw": [
+        1060,
+        704,
+        610,
+        605,
+        601,
+        536,
+        542,
+        536,
+        525,
+        551,
+        564,
+        576,
+        582,
+        605,
+        526,
+        581,
+        517,
+        577,
+        561,
+        550
+      ]
+    },
+    "toggle": {
+      "runs": 20,
+      "p50": 134,
+      "p95": 184,
+      "max": 210,
+      "raw": [
+        210,
+        137,
+        129,
+        139,
+        140,
+        154,
+        184,
+        134,
+        145,
+        95,
+        127,
+        121,
+        174,
+        110,
+        124,
+        78,
+        125,
+        173,
+        172,
+        79
+      ]
+    },
+    "search": {
+      "runs": 20,
+      "p50": 42,
+      "p95": 67,
+      "max": 84,
+      "raw": [
+        67,
+        84,
+        42,
+        47,
+        51,
+        42,
+        42,
+        43,
+        41,
+        42,
+        40,
+        42,
+        41,
+        42,
+        42,
+        42,
+        41,
+        42,
+        42,
+        43
+      ]
+    }
+  },
+  "externalRequests": 0,
+  "keyboard": {
+    "visibleNodes": 30,
+    "reached": 30,
+    "escapeRestoresFocus": true
+  },
+  "passed": true,
+  "failures": []
+}

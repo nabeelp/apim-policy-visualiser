@@ -1,0 +1,9 @@
+{
+  "name": "apim-policy-visualizer-smoke",
+  "private": true,
+  "type": "module",
+  "description": "Browser smoke tooling; uses the locally installed Microsoft Edge (no browser download).",
+  "dependencies": {
+    "playwright-core": "1.63.0"
+  }
+}

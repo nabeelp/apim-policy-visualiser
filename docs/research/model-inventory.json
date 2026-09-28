@@ -1,0 +1,300 @@
+{
+  "schema_version": 2,
+  "last_verified": "2026-09-24T12:05:00Z",
+  "ollama": {
+    "available": false,
+    "endpoint": "http://localhost:11434",
+    "reason": "connection refused - Ollama not running/installed on this machine",
+    "models": []
+  },
+  "opencode_cli": {
+    "available": false,
+    "command": "opencode models",
+    "models": [],
+    "diagnostics": {
+      "raw_output": "ResourceUnavailable: opencode.ps1:14 - Program 'opencode.exe' failed to run: An error occurred trying to start process ... The specified executable is not a valid application for this OS platform.",
+      "error": "opencode npm install is corrupted/incompatible on this machine (wrong-platform binary); exit code 1"
+    }
+  },
+  "copilot_cli": {
+    "available": true,
+    "command": "copilot -p \"/model list names only\"",
+    "models": [
+      {
+        "id": "claude-sonnet-5",
+        "normalized": true,
+        "capabilities": {
+          "overall_score": 67.25,
+          "evidence_status": "Supported",
+          "source_url": "https://benchlm.ai/models/claude-sonnet-5",
+          "retrieved_at": "2026-09-24T12:04:00Z"
+        }
+      },
+      {
+        "id": "claude-opus-5",
+        "normalized": true,
+        "capabilities": {
+          "overall_score": 80.35,
+          "evidence_status": "Supported",
+          "source_url": "https://benchlm.ai/models/claude-opus-5",
+          "retrieved_at": "2026-09-24T12:04:00Z"
+        }
+      },
+      {
+        "id": "claude-opus-5.5",
+        "normalized": true,
+        "capabilities": {
+          "overall_score": 88.45,
+          "agentic_score": 88.8,
+          "coding_score": 87,
+          "reasoning_score": 79,
+          "context_length": 1000000,
+          "evidence_status": "Estimated-ranked (1 source family)",
+          "source_url": "https://benchlm.ai/models/claude-opus-5-5",
+          "retrieved_at": "2026-09-24T12:04:00Z"
+        }
+      },
+      {
+        "id": "claude-opus-4.8",
+        "normalized": true,
+        "capabilities": {
+          "overall_score": 70.86,
+          "evidence_status": "Supported",
+          "source_url": "https://benchlm.ai/models/claude-opus-4-8",
+          "retrieved_at": "2026-09-24T12:04:00Z"
+        }
+      },
+      {
+        "id": "claude-opus-4.7",
+        "normalized": true,
+        "capabilities": {
+          "overall_score": 66.35,
+          "evidence_status": "Estimated-ranked (2 source families)",
+          "source_url": "https://benchlm.ai/models/claude-opus-4-7",
+          "retrieved_at": "2026-09-24T12:04:00Z"
+        }
+      },
+      {
+        "id": "claude-haiku-4.5",
+        "normalized": true,
+        "capabilities": { "evidence_status": "unverified" }
+      },
+      {
+        "id": "gpt-6-astra",
+        "normalized": true,
+        "capabilities": {
+          "overall_score": 88.47,
+          "agentic_score": 71,
+          "coding_score": 74,
+          "reasoning_score": 90,
+          "context_length": 1050000,
+          "evidence_status": "Supported (2 source families)",
+          "source_url": "https://benchlm.ai/models/gpt-6-astra",
+          "retrieved_at": "2026-09-24T12:04:00Z"
+        }
+      },
+      {
+        "id": "gpt-5.6-sol",
+        "normalized": true,
+        "capabilities": {
+          "overall_score": 80.44,
+          "context_length": 1050000,
+          "evidence_status": "Supported (3 source families)",
+          "source_url": "https://benchlm.ai/models/gpt-5-6-sol",
+          "retrieved_at": "2026-09-24T12:04:00Z"
+        }
+      },
+      {
+        "id": "gpt-5.6-sol-fast",
+        "normalized": true,
+        "capabilities": { "evidence_status": "unverified" }
+      },
+      {
+        "id": "gpt-5.6-terra",
+        "normalized": true,
+        "capabilities": {
+          "overall_score": 72.76,
+          "context_length": 1050000,
+          "evidence_status": "Supported (2 source families)",
+          "source_url": "https://benchlm.ai/models/gpt-5-6-terra",
+          "retrieved_at": "2026-09-24T12:04:00Z"
+        }
+      },
+      {
+        "id": "gpt-5.6-luna",
+        "normalized": true,
+        "capabilities": {
+          "overall_score": 64.87,
+          "context_length": 1050000,
+          "evidence_status": "Estimated-ranked (2 source families)",
+          "source_url": "https://benchlm.ai/models/gpt-5-6-luna",
+          "retrieved_at": "2026-09-24T12:04:00Z"
+        }
+      },
+      {
+        "id": "gpt-5.5",
+        "normalized": true,
+        "capabilities": {
+          "overall_score": 69.48,
+          "context_length": 1000000,
+          "evidence_status": "Supported (3 source families)",
+          "source_url": "https://benchlm.ai/models/gpt-5-5",
+          "retrieved_at": "2026-09-24T12:04:00Z"
+        }
+      },
+      {
+        "id": "gpt-5.4",
+        "normalized": true,
+        "capabilities": {
+          "overall_score": 69.23,
+          "context_length": 1050000,
+          "evidence_status": "Supported (3 source families)",
+          "source_url": "https://benchlm.ai/models/gpt-5-4",
+          "retrieved_at": "2026-09-24T12:04:00Z"
+        }
+      },
+      {
+        "id": "gpt-5.4-mini",
+        "normalized": true,
+        "capabilities": { "evidence_status": "unverified" }
+      },
+      {
+        "id": "gpt-5.3-codex",
+        "normalized": true,
+        "capabilities": { "evidence_status": "unverified" }
+      },
+      {
+        "id": "gpt-5-mini",
+        "normalized": true,
+        "capabilities": { "evidence_status": "unverified" }
+      },
+      {
+        "id": "mai-code-1.1-flash",
+        "normalized": true,
+        "capabilities": { "evidence_status": "unverified" }
+      },
+      {
+        "id": "gemini-3.8-flash",
+        "normalized": true,
+        "capabilities": {
+          "overall_score": 72.74,
+          "context_length": 1000000,
+          "evidence_status": "Supported (3 source families)",
+          "source_url": "https://benchlm.ai/models/gemini-3-8-flash",
+          "retrieved_at": "2026-09-24T12:04:00Z"
+        }
+      },
+      {
+        "id": "gemini-3.7-flash",
+        "normalized": true,
+        "capabilities": {
+          "overall_score": 65.31,
+          "context_length": 1000000,
+          "evidence_status": "Estimated-ranked (2 source families)",
+          "source_url": "https://benchlm.ai/models/gemini-3-7-flash",
+          "retrieved_at": "2026-09-24T12:04:00Z"
+        }
+      },
+      {
+        "id": "gemini-3.6-flash",
+        "normalized": true,
+        "capabilities": {
+          "overall_score": 65.06,
+          "context_length": 1000000,
+          "evidence_status": "Supported (3 source families)",
+          "source_url": "https://benchlm.ai/models/gemini-3-6-flash",
+          "retrieved_at": "2026-09-24T12:04:00Z"
+        }
+      },
+      {
+        "id": "gemini-3.5-flash",
+        "normalized": true,
+        "capabilities": {
+          "overall_score": 63.93,
+          "context_length": 1000000,
+          "evidence_status": "Supported",
+          "source_url": "https://benchlm.ai/models/gemini-3-5-flash",
+          "retrieved_at": "2026-09-24T12:04:00Z"
+        }
+      },
+      {
+        "id": "grok-4.5",
+        "normalized": true,
+        "capabilities": {
+          "overall_score": 65.37,
+          "context_length": 500000,
+          "evidence_status": "Supported (3 source families)",
+          "source_url": "https://benchlm.ai/models/grok-4-5",
+          "retrieved_at": "2026-09-24T12:04:00Z"
+        }
+      },
+      {
+        "id": "gpt-6-luna",
+        "normalized": true,
+        "capabilities": {
+          "overall_score": 66.52,
+          "context_length": 1050000,
+          "evidence_status": "Estimated-ranked (1 source family)",
+          "source_url": "https://benchlm.ai/models/gpt-6-luna",
+          "retrieved_at": "2026-09-24T12:04:00Z"
+        }
+      },
+      {
+        "id": "gpt-6-sol",
+        "normalized": true,
+        "capabilities": {
+          "overall_score": 82.17,
+          "context_length": 1050000,
+          "evidence_status": "Estimated-ranked (1 source family)",
+          "source_url": "https://benchlm.ai/models/gpt-6-sol",
+          "retrieved_at": "2026-09-24T12:04:00Z"
+        }
+      },
+      {
+        "id": "grok-4.6",
+        "normalized": true,
+        "capabilities": {
+          "overall_score": 69.23,
+          "context_length": 500000,
+          "evidence_status": "Supported (3 source families)",
+          "source_url": "https://benchlm.ai/models/grok-4-6",
+          "retrieved_at": "2026-09-24T12:04:00Z"
+        }
+      },
+      {
+        "id": "grok-4.7",
+        "normalized": true,
+        "capabilities": { "evidence_status": "unverified" }
+      }
+    ],
+    "diagnostics": {
+      "raw_output": "Available models:\n\n- claude-sonnet-5\n- claude-opus-5\n- claude-opus-4.8\n- claude-opus-4.7\n- claude-haiku-4.5\n- gpt-6-astra\n- gpt-5.6-sol\n- gpt-5.6-sol-fast\n- gpt-5.6-terra\n- gpt-5.6-luna\n- gpt-5.5\n- gpt-5.4\n- gpt-5.4-mini\n- gpt-5.3-codex\n- gpt-5-mini\n- mai-code-1.1-flash\n- gemini-3.8-flash\n- gemini-3.7-flash\n- gemini-3.6-flash\n- gemini-3.5-flash\n- grok-4.5\n- claude-opus-5.5\n- gpt-6-luna\n- gpt-6-sol\n- grok-4.6\n- grok-4.7",
+      "error": null
+    }
+  },
+  "claude_cli": {
+    "available": false,
+    "command": "claude -p \"/model\" --bare --output-format json",
+    "models": [],
+    "diagnostics": {
+      "raw_output": "",
+      "error": "'claude' executable not found on PATH"
+    }
+  },
+  "byok_provider": {
+    "endpoint": null,
+    "models": [],
+    "diagnostics": { "error": "COPILOT_PROVIDER_BASE_URL not set" }
+  },
+  "copilot_subscription": {
+    "plan": "discovered-by-copilot-cli",
+    "models": [
+      "claude-sonnet-5", "claude-opus-5", "claude-opus-4.8", "claude-opus-4.7",
+      "claude-haiku-4.5", "gpt-6-astra", "gpt-5.6-sol", "gpt-5.6-sol-fast",
+      "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.5", "gpt-5.4", "gpt-5.4-mini",
+      "gpt-5.3-codex", "gpt-5-mini", "mai-code-1.1-flash", "gemini-3.8-flash",
+      "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "grok-4.5",
+      "claude-opus-5.5", "gpt-6-luna", "gpt-6-sol", "grok-4.6", "grok-4.7"
+    ]
+  }
+}

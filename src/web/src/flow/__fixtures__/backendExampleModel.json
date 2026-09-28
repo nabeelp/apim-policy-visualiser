@@ -1,0 +1,5335 @@
+{
+  "schemaVersion": 2,
+  "scopeId": "apis/example",
+  "scopeKind": "api",
+  "source": {
+    "text": "\u003C!--\n    Synthetic effective policy for tests. Every name, key and value is invented; it reproduces only the\n    structural shape of an ARM format=xml effective policy for an AI gateway API.\n--\u003E\n\u003Cpolicies\u003E\n\t\u003Cinbound\u003E\n\t\t\u003Cbase /\u003E\n\t\t\u003C!-- Step 1: Allow browser callers --\u003E\n\t\t\u003C!--include-fragment: Begin cors-policy policy fragment scope--\u003E\n\t\t\u003Ccors allow-credentials=\u0022false\u0022\u003E\n\t\t\t\u003Callowed-origins\u003E\n\t\t\t\t\u003Corigin\u003Ehttps://portal.example.test\u003C/origin\u003E\n\t\t\t\u003C/allowed-origins\u003E\n\t\t\t\u003Callowed-methods\u003E\n\t\t\t\t\u003Cmethod\u003EGET\u003C/method\u003E\n\t\t\t\t\u003Cmethod\u003EPOST\u003C/method\u003E\n\t\t\t\u003C/allowed-methods\u003E\n\t\t\u003C/cors\u003E\n\t\t\u003C!--include-fragment: End cors-policy policy fragment scope--\u003E\n\t\t\u003C!-- Step 2: Require a subscription --\u003E\n\t\t\u003C!--include-fragment: Begin subscription-guard policy fragment scope--\u003E\n\t\t\u003Cchoose\u003E\n\t\t\t\u003Cwhen condition=\u0022@(context.Subscription == null)\u0022\u003E\n\t\t\t\t\u003Creturn-response\u003E\n\t\t\t\t\t\u003Cset-status code=\u0022401\u0022 reason=\u0022Unauthorized\u0022 /\u003E\n\t\t\t\t\t\u003Cset-header name=\u0022WWW-Authenticate\u0022 exists-action=\u0022override\u0022\u003E\n\t\t\t\t\t\t\u003Cvalue\u003EBearer\u003C/value\u003E\n\t\t\t\t\t\u003C/set-header\u003E\n\t\t\t\t\u003C/return-response\u003E\n\t\t\t\u003C/when\u003E\n\t\t\u003C/choose\u003E\n\t\t\u003C!--include-fragment: End subscription-guard policy fragment scope--\u003E\n\t\t\u003C!-- Step 3: Authenticate caller --\u003E\n\t\t\u003C!--include-fragment: Begin caller-authentication policy fragment scope--\u003E\n\t\t\u003C!--\n\t\t\tFragment: Caller authentication\n\t\t\tPurpose: validates the bearer token issued by the example identity provider.\n\t\t--\u003E\n\t\t\u003Cvalidate-jwt header-name=\u0022Authorization\u0022 failed-validation-httpcode=\u0022401\u0022 failed-validation-error-message=\u0022Unauthorized\u0022 output-token-variable-name=\u0022callerToken\u0022\u003E\n\t\t\t\u003Copenid-config url=\u0022https://login.example.test/.well-known/openid-configuration\u0022 /\u003E\n\t\t\t\u003Caudiences\u003E\n\t\t\t\t\u003Caudience\u003Eapi://example-gateway\u003C/audience\u003E\n\t\t\t\u003C/audiences\u003E\n\t\t\t\u003Crequired-claims\u003E\n\t\t\t\t\u003Cclaim name=\u0022roles\u0022 match=\u0022any\u0022\u003E\n\t\t\t\t\t\u003Cvalue\u003EGateway.Invoke\u003C/value\u003E\n\t\t\t\t\u003C/claim\u003E\n\t\t\t\u003C/required-claims\u003E\n\t\t\u003C/validate-jwt\u003E\n\t\t\u003C!--include-fragment: End caller-authentication policy fragment scope--\u003E\n\t\t\u003C!-- Step 4: Validate model --\u003E\n\t\t\u003C!--include-fragment: Begin model-resolution policy fragment scope--\u003E\n\t\t\u003Cset-variable name=\u0022requestedModel\u0022 value=\u0022@{\u0026#xD;\u0026#xA;  try {\u0026#xD;\u0026#xA;    if (context.Request.Method == \u0026amp;quot;GET\u0026amp;quot;) { return \u0026amp;quot;none\u0026amp;quot;; }\u0026#xD;\u0026#xA;    var fromQuery = context.Request.Url.Query.GetValueOrDefault(\u0026amp;quot;model\u0026amp;quot;, \u0026amp;quot;\u0026amp;quot;);\u0026#xD;\u0026#xA;    if (!string.IsNullOrEmpty(fromQuery)) { return fromQuery; }\u0026#xD;\u0026#xA;    var path = context.Request.OriginalUrl.Path;\u0026#xD;\u0026#xA;    if (path.Contains(\u0026amp;quot;/deployments/\u0026amp;quot;)) { return path.Split(\u0027/\u0027)[3]; }\u0026#xD;\u0026#xA;    if (path.EndsWith(\u0026amp;quot;/models\u0026amp;quot;)) { return \u0026amp;quot;catalog\u0026amp;quot;; }\u0026#xD;\u0026#xA;    var fromHeader = context.Request.Headers.GetValueOrDefault(\u0026amp;quot;x-model\u0026amp;quot;, \u0026amp;quot;\u0026amp;quot;);\u0026#xD;\u0026#xA;    if (fromHeader != \u0026amp;quot;\u0026amp;quot;) { return fromHeader; }\u0026#xD;\u0026#xA;    var body = context.Request.Body?.As\u0026amp;lt;JObject\u0026amp;gt;(preserveContent: true);\u0026#xD;\u0026#xA;    if (body != null \u0026amp;amp;\u0026amp;amp; body[\u0026amp;quot;model\u0026amp;quot;] != null) { return body[\u0026amp;quot;model\u0026amp;quot;].ToString(); }\u0026#xD;\u0026#xA;    return \u0026amp;quot;\u0026amp;quot;;\u0026#xD;\u0026#xA;  } catch { return \u0026amp;quot;\u0026amp;quot;; }\u0026#xD;\u0026#xA;}\u0022 /\u003E\n\t\t\u003C!--include-fragment: End model-resolution policy fragment scope--\u003E\n\t\t\u003C!-- Step 5: Enforce model allow-list --\u003E\n\t\t\u003C!--include-fragment: Begin model-allowlist policy fragment scope--\u003E\n\t\t\u003Cchoose\u003E\n\t\t\t\u003Cwhen condition=\u0022@(string.IsNullOrEmpty((string)context.Variables[\u0026amp;quot;requestedModel\u0026amp;quot;]))\u0022\u003E\n\t\t\t\t\u003Creturn-response\u003E\n\t\t\t\t\t\u003Cset-status code=\u0022400\u0022 reason=\u0022Bad Request\u0022 /\u003E\n\t\t\t\t\t\u003Cset-body\u003E{\u0022error\u0022:\u0022model is required\u0022}\u003C/set-body\u003E\n\t\t\t\t\u003C/return-response\u003E\n\t\t\t\u003C/when\u003E\n\t\t\t\u003Cwhen condition=\u0022@(!\u0026amp;quot;{{allowed-models}}\u0026amp;quot;.Contains((string)context.Variables[\u0026amp;quot;requestedModel\u0026amp;quot;]))\u0022\u003E\n\t\t\t\t\u003Creturn-response\u003E\n\t\t\t\t\t\u003Cset-status code=\u0022404\u0022 reason=\u0022Not Found\u0022 /\u003E\n\t\t\t\t\u003C/return-response\u003E\n\t\t\t\u003C/when\u003E\n\t\t\u003C/choose\u003E\n\t\t\u003C!--include-fragment: End model-allowlist policy fragment scope--\u003E\n\t\t\u003C!-- Step 6: Maintenance gate --\u003E\n\t\t\u003C!--include-fragment: Begin maintenance-gate policy fragment scope--\u003E\n\t\t\u003Cchoose\u003E\n\t\t\t\u003Cwhen condition=\u0022@(context.Variables.GetValueOrDefault\u0026amp;lt;bool\u0026amp;gt;(\u0026amp;quot;maintenanceMode\u0026amp;quot;, false))\u0022\u003E\n\t\t\t\t\u003Creturn-response\u003E\n\t\t\t\t\t\u003Cset-status code=\u0022503\u0022 reason=\u0022Service Unavailable\u0022 /\u003E\n\t\t\t\t\u003C/return-response\u003E\n\t\t\t\u003C/when\u003E\n\t\t\u003C/choose\u003E\n\t\t\u003C!--include-fragment: End maintenance-gate policy fragment scope--\u003E\n\t\t\u003C!-- Step 7: Responses ownership --\u003E\n\t\t\u003C!--include-fragment: Begin responses-ownership policy fragment scope--\u003E\n\t\t\u003Ccache-lookup-value key=\u0022@(\u0026amp;quot;responses-owner-\u0026amp;quot; \u002B context.Request.MatchedParameters.GetValueOrDefault(\u0026amp;quot;responseId\u0026amp;quot;, \u0026amp;quot;\u0026amp;quot;))\u0022 variable-name=\u0022responseOwner\u0022 caching-type=\u0022internal\u0022 /\u003E\n\t\t\u003Cchoose\u003E\n\t\t\t\u003Cwhen condition=\u0022@(context.Variables.ContainsKey(\u0026amp;quot;responseOwner\u0026amp;quot;) \u0026amp;amp;\u0026amp;amp; (string)context.Variables[\u0026amp;quot;responseOwner\u0026amp;quot;] != context.Subscription.Id)\u0022\u003E\n\t\t\t\t\u003Creturn-response\u003E\n\t\t\t\t\t\u003Cset-status code=\u0022403\u0022 reason=\u0022Forbidden\u0022 /\u003E\n\t\t\t\t\u003C/return-response\u003E\n\t\t\t\u003C/when\u003E\n\t\t\u003C/choose\u003E\n\t\t\u003C!--include-fragment: End responses-ownership policy fragment scope--\u003E\n\t\t\u003C!-- Step 8: Token budget --\u003E\n\t\t\u003C!--include-fragment: Begin token-budget policy fragment scope--\u003E\n\t\t\u003Cllm-token-limit counter-key=\u0022@(context.Subscription.Id)\u0022 tokens-per-minute=\u00225000\u0022 estimate-prompt-tokens=\u0022true\u0022 remaining-tokens-variable-name=\u0022remainingTokens\u0022 /\u003E\n\t\t\u003C!--include-fragment: End token-budget policy fragment scope--\u003E\n\t\t\u003C!-- Step 9: Route to backend pool --\u003E\n\t\t\u003C!--include-fragment: Begin backend-routing policy fragment scope--\u003E\n\t\t\u003Cset-variable name=\u0022backendPool\u0022 value=\u0022@(\u0026amp;quot;{{default-backend-pool}}\u0026amp;quot;)\u0022 /\u003E\n\t\t\u003Cchoose\u003E\n\t\t\t\u003Cwhen condition=\u0022@(((string)context.Variables[\u0026amp;quot;requestedModel\u0026amp;quot;]).StartsWith(\u0026amp;quot;gpt-\u0026amp;quot;))\u0022\u003E\n\t\t\t\t\u003Cset-backend-service backend-id=\u0022@((string)context.Variables[\u0026amp;quot;backendPool\u0026amp;quot;])\u0022 /\u003E\n\t\t\t\u003C/when\u003E\n\t\t\t\u003Cwhen condition=\u0022@((string)context.Variables[\u0026amp;quot;backendPool\u0026amp;quot;] == \u0026amp;quot;pool-b\u0026amp;quot;)\u0022 /\u003E\n\t\t\t\u003Cotherwise\u003E\n\t\t\t\t\u003Cset-backend-service backend-id=\u0022fallback-pool\u0022 /\u003E\n\t\t\t\u003C/otherwise\u003E\n\t\t\u003C/choose\u003E\n\t\t\u003C!--include-fragment: End backend-routing policy fragment scope--\u003E\n\t\t\u003C!-- Step 10: Request headers --\u003E\n\t\t\u003C!--include-fragment: Begin request-headers policy fragment scope--\u003E\n\t\t\u003C!--include-fragment: Begin correlation-id policy fragment scope--\u003E\n\t\t\u003Cset-header name=\u0022x-correlation-id\u0022 exists-action=\u0022skip\u0022\u003E\n\t\t\t\u003Cvalue\u003E@(context.RequestId.ToString())\u003C/value\u003E\n\t\t\u003C/set-header\u003E\n\t\t\u003C!--include-fragment: End correlation-id policy fragment scope--\u003E\n\t\t\u003Cchoose\u003E\n\t\t\t\u003Cwhen condition=\u0022@(context.Request.Method == \u0026amp;quot;POST\u0026amp;quot;)\u0022\u003E\n\t\t\t\t\u003Csend-request mode=\u0022new\u0022 response-variable-name=\u0022auditResponse\u0022 timeout=\u00225\u0022 ignore-error=\u0022true\u0022\u003E\n\t\t\t\t\t\u003Cset-url\u003Ehttps://audit.example.test/events\u003C/set-url\u003E\n\t\t\t\t\t\u003Cset-method\u003EPOST\u003C/set-method\u003E\n\t\t\t\t\u003C/send-request\u003E\n\t\t\t\u003C/when\u003E\n\t\t\u003C/choose\u003E\n\t\t\u003Ctrace source=\u0022example-gateway\u0022 severity=\u0022information\u0022\u003E\n\t\t\t\u003Cmessage\u003Erequest accepted\u003C/message\u003E\n\t\t\u003C/trace\u003E\n\t\t\u003C!--include-fragment: End request-headers policy fragment scope--\u003E\n\t\t\u003C!-- Step 11: Legacy quota (disabled) --\u003E\n\t\t\u003C!-- \u003Cinclude-fragment fragment-id=\u0022legacy-quota\u0022 /\u003E --\u003E\n\t\t\u003Cexample-telemetry-probe mode=\u0022basic\u0022 /\u003E\n\t\u003C/inbound\u003E\n\t\u003Cbackend\u003E\n\t\t\u003C!-- Step 12: Call the model backend with retries --\u003E\n\t\t\u003Cretry condition=\u0022@(context.Response.StatusCode == 429 || (context.Response.StatusCode \u0026amp;gt;= 500 \u0026amp;amp;\u0026amp;amp; !context.Response.StatusReason.Contains(\u0026amp;quot;Backend pool\u0026amp;quot;)))\u0022 count=\u00222\u0022 interval=\u00221\u0022 max-interval=\u00228\u0022 delta=\u00221\u0022 first-fast-retry=\u0022true\u0022\u003E\n\t\t\t\u003C!--include-fragment: Begin backend-auth policy fragment scope--\u003E\n\t\t\t\u003C!--\n\t\t\t\tFragment: Backend authentication\n\t\t\t\tPurpose: obtains a managed identity token for the model backend.\n\t\t\t--\u003E\n\t\t\t\u003Cauthentication-managed-identity resource=\u0022https://models.example.test\u0022 output-token-variable-name=\u0022backendToken\u0022 /\u003E\n\t\t\t\u003C!--include-fragment: End backend-auth policy fragment scope--\u003E\n\t\t\t\u003C!--include-fragment: Begin backend-attempt-log policy fragment scope--\u003E\n\t\t\t\u003Cset-variable name=\u0022attempt\u0022 value=\u0022@(context.Variables.GetValueOrDefault\u0026amp;lt;int\u0026amp;gt;(\u0026amp;quot;attempt\u0026amp;quot;, 0) \u002B 1)\u0022 /\u003E\n\t\t\t\u003Cemit-metric name=\u0022backend-attempts\u0022 value=\u00221\u0022\u003E\n\t\t\t\t\u003Cdimension name=\u0022model\u0022 /\u003E\n\t\t\t\u003C/emit-metric\u003E\n\t\t\t\u003C!--include-fragment: End backend-attempt-log policy fragment scope--\u003E\n\t\t\t\u003Cforward-request timeout=\u0022120\u0022 buffer-response=\u0022false\u0022 /\u003E\n\t\t\u003C/retry\u003E\n\t\u003C/backend\u003E\n\t\u003Coutbound\u003E\n\t\t\u003Cbase /\u003E\n\t\t\u003C!-- Step 13: Remember response ownership --\u003E\n\t\t\u003C!--include-fragment: Begin response-cache-store policy fragment scope--\u003E\n\t\t\u003Ccache-store-value key=\u0022@(\u0026amp;quot;responses-owner-\u0026amp;quot; \u002B context.Response.Headers.GetValueOrDefault(\u0026amp;quot;x-response-id\u0026amp;quot;, \u0026amp;quot;\u0026amp;quot;))\u0022 value=\u0022@(context.Subscription.Id)\u0022 duration=\u00223600\u0022 caching-type=\u0022internal\u0022 /\u003E\n\t\t\u003C!--include-fragment: End response-cache-store policy fragment scope--\u003E\n\t\t\u003C!-- Step 14: Response headers --\u003E\n\t\t\u003C!--include-fragment: Begin set-response-headers policy fragment scope--\u003E\n\t\t\u003Cset-header name=\u0022x-served-by\u0022 exists-action=\u0022override\u0022\u003E\n\t\t\t\u003Cvalue\u003Eexample-gateway\u003C/value\u003E\n\t\t\u003C/set-header\u003E\n\t\t\u003Cset-header name=\u0022x-powered-by\u0022 exists-action=\u0022delete\u0022 /\u003E\n\t\t\u003C!--include-fragment: End set-response-headers policy fragment scope--\u003E\n\t\u003C/outbound\u003E\n\t\u003Con-error\u003E\n\t\t\u003Cbase /\u003E\n\t\t\u003C!--include-fragment: Begin set-response-headers policy fragment scope--\u003E\n\t\t\u003Cset-header name=\u0022x-served-by\u0022 exists-action=\u0022override\u0022\u003E\n\t\t\t\u003Cvalue\u003Eexample-gateway\u003C/value\u003E\n\t\t\u003C/set-header\u003E\n\t\t\u003Cset-header name=\u0022x-powered-by\u0022 exists-action=\u0022delete\u0022 /\u003E\n\t\t\u003C!--include-fragment: End set-response-headers policy fragment scope--\u003E\n\t\t\u003C!-- Step 15: Shape errors --\u003E\n\t\t\u003C!--include-fragment: Begin error-shaping policy fragment scope--\u003E\n\t\t\u003Cchoose\u003E\n\t\t\t\u003Cwhen condition=\u0022@(context.Response.StatusCode == 429)\u0022\u003E\n\t\t\t\t\u003Cemit-metric name=\u0022throttled-requests\u0022 value=\u00221\u0022\u003E\n\t\t\t\t\t\u003Cdimension name=\u0022stage\u0022 value=\u0022on-error\u0022 /\u003E\n\t\t\t\t\u003C/emit-metric\u003E\n\t\t\t\t\u003Cset-header name=\u0022Retry-After\u0022 exists-action=\u0022override\u0022\u003E\n\t\t\t\t\t\u003Cvalue\u003E10\u003C/value\u003E\n\t\t\t\t\u003C/set-header\u003E\n\t\t\t\u003C/when\u003E\n\t\t\t\u003Cwhen condition=\u0022@(context.LastError.Reason == \u0026amp;quot;BackendConnectionFailure\u0026amp;quot;)\u0022\u003E\n\t\t\t\t\u003Creturn-response\u003E\n\t\t\t\t\t\u003Cset-status code=\u0022500\u0022 reason=\u0022Internal Server Error\u0022 /\u003E\n\t\t\t\t\u003C/return-response\u003E\n\t\t\t\u003C/when\u003E\n\t\t\u003C/choose\u003E\n\t\t\u003Cset-body\u003E@{\n  return new JObject(new JProperty(\u0026amp;quot;error\u0026amp;quot;, context.LastError.Message)).ToString();\n}\u003C/set-body\u003E\n\t\t\u003C!--include-fragment: End error-shaping policy fragment scope--\u003E\n\t\u003C/on-error\u003E\n\u003C/policies\u003E\n",
+    "lineCount": 196
+  },
+  "stages": [
+    {
+      "id": "stage:inbound",
+      "name": "inbound",
+      "present": true
+    },
+    {
+      "id": "stage:backend",
+      "name": "backend",
+      "present": true
+    },
+    {
+      "id": "stage:outbound",
+      "name": "outbound",
+      "present": true
+    },
+    {
+      "id": "stage:on-error",
+      "name": "on-error",
+      "present": true
+    }
+  ],
+  "elements": [
+    {
+      "id": "entry:request",
+      "kind": "entry",
+      "stage": null,
+      "parentId": null,
+      "order": 0,
+      "label": "Request",
+      "labelProvenance": "structural",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": null,
+      "span": null,
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Inbound, Backend and Outbound run sequentially in that order for every request.",
+          "provenance": "apim-rule",
+          "ruleId": "stage.sequence"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "entry:preflight",
+      "kind": "entry",
+      "stage": null,
+      "parentId": null,
+      "order": 1,
+      "label": "CORS preflight request (if no matching OPTIONS operation)",
+      "labelProvenance": "structural",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": null,
+      "span": null,
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [
+        "configuration-dependent"
+      ],
+      "facts": [
+        {
+          "text": "When cors is present and no explicitly defined OPTIONS operation matches, APIM answers preflight requests at the cors policy; a matching OPTIONS operation disables this handling.",
+          "provenance": "apim-rule",
+          "ruleId": "cors.preflight"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "stage:inbound",
+      "kind": "stage",
+      "stage": null,
+      "parentId": null,
+      "order": 2,
+      "label": "Inbound",
+      "labelProvenance": "structural",
+      "tag": "inbound",
+      "category": "control",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 6,
+        "startColumn": 2,
+        "endLine": 131,
+        "endColumn": 11
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [],
+      "exits": {
+        "explicitResponseCodes": [
+          "400",
+          "401",
+          "403",
+          "404",
+          "503"
+        ],
+        "raisesError": true
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "stage:backend",
+      "kind": "stage",
+      "stage": null,
+      "parentId": null,
+      "order": 3,
+      "label": "Backend",
+      "labelProvenance": "structural",
+      "tag": "backend",
+      "category": "control",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 132,
+        "startColumn": 2,
+        "endLine": 150,
+        "endColumn": 11
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": true
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "stage:outbound",
+      "kind": "stage",
+      "stage": null,
+      "parentId": null,
+      "order": 4,
+      "label": "Outbound",
+      "labelProvenance": "structural",
+      "tag": "outbound",
+      "category": "control",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 151,
+        "startColumn": 2,
+        "endLine": 164,
+        "endColumn": 12
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "stage:on-error",
+      "kind": "stage",
+      "stage": null,
+      "parentId": null,
+      "order": 5,
+      "label": "On-error",
+      "labelProvenance": "structural",
+      "tag": "on-error",
+      "category": "control",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 165,
+        "startColumn": 2,
+        "endLine": 194,
+        "endColumn": 12
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "On-error is an exception lane: it runs only after an execution failure.",
+          "provenance": "apim-rule",
+          "ruleId": "on-error.lane"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [
+          "500"
+        ],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/0",
+      "kind": "step",
+      "stage": "inbound",
+      "parentId": "stage:inbound",
+      "order": 0,
+      "label": "Inherited policies (base)",
+      "labelProvenance": "structural",
+      "tag": "base",
+      "category": "inherited",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 7,
+        "startColumn": 3,
+        "endLine": 7,
+        "endColumn": 10
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Inherited policies of the enclosing scope run at this position.",
+          "provenance": "apim-rule",
+          "ruleId": "base.inherited"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:cors-policy#1",
+      "kind": "group",
+      "stage": "inbound",
+      "parentId": "stage:inbound",
+      "order": 1,
+      "label": "Allow browser callers",
+      "labelProvenance": "comment",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": {
+        "name": "cors-policy",
+        "occurrenceId": "cors-policy#1",
+        "index": 1,
+        "count": 1,
+        "description": null
+      },
+      "span": {
+        "startLine": 9,
+        "startColumn": 3,
+        "endLine": 19,
+        "endColumn": 64
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Fragment \u0027cors-policy\u0027 occurrence 1 of 1, delimited by include-fragment Begin/End marker comments.",
+          "provenance": "comment",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:cors-policy#1/0",
+      "kind": "step",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:cors-policy#1",
+      "order": 0,
+      "label": "CORS",
+      "labelProvenance": "structural",
+      "tag": "cors",
+      "category": "cors",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 10,
+        "startColumn": 3,
+        "endLine": 18,
+        "endColumn": 9
+      },
+      "attributes": [
+        {
+          "name": "allow-credentials",
+          "value": "false",
+          "isExpression": false
+        }
+      ],
+      "expressions": [],
+      "properties": [
+        {
+          "name": "allowed-origins/origin",
+          "value": "https://portal.example.test",
+          "isExpression": false
+        },
+        {
+          "name": "allowed-methods/method",
+          "value": "GET",
+          "isExpression": false
+        },
+        {
+          "name": "allowed-methods/method",
+          "value": "POST",
+          "isExpression": false
+        }
+      ],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Adds CORS response headers for allowed cross-origin requests; the ordinary request continues.",
+          "provenance": "apim-rule",
+          "ruleId": "cors.headers"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:subscription-guard#1",
+      "kind": "group",
+      "stage": "inbound",
+      "parentId": "stage:inbound",
+      "order": 2,
+      "label": "Require a subscription",
+      "labelProvenance": "comment",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": {
+        "name": "subscription-guard",
+        "occurrenceId": "subscription-guard#1",
+        "index": 1,
+        "count": 1,
+        "description": null
+      },
+      "span": {
+        "startLine": 21,
+        "startColumn": 3,
+        "endLine": 32,
+        "endColumn": 71
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Fragment \u0027subscription-guard\u0027 occurrence 1 of 1, delimited by include-fragment Begin/End marker comments.",
+          "provenance": "comment",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [
+          "401"
+        ],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:subscription-guard#1/0",
+      "kind": "choose",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:subscription-guard#1",
+      "order": 0,
+      "label": "Choose: Subscription is null",
+      "labelProvenance": "structural",
+      "tag": "choose",
+      "category": "control",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 22,
+        "startColumn": 3,
+        "endLine": 31,
+        "endColumn": 11
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [],
+      "exits": {
+        "explicitResponseCodes": [
+          "401"
+        ],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:subscription-guard#1/0/decision",
+      "kind": "decision",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:subscription-guard#1/0",
+      "order": 0,
+      "label": "First match of 1 condition, else continue",
+      "labelProvenance": "structural",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 22,
+        "startColumn": 3,
+        "endLine": 31,
+        "endColumn": 11
+      },
+      "attributes": [],
+      "expressions": [
+        {
+          "location": "when[1]/@condition",
+          "text": "@(context.Subscription == null)",
+          "span": {
+            "startLine": 23,
+            "startColumn": 21,
+            "endLine": 23,
+            "endColumn": 51
+          },
+          "analysis": {
+            "opaque": false,
+            "summary": "Subscription is null",
+            "variablesRead": [],
+            "namedValues": [],
+            "contextMembers": [
+              "Subscription"
+            ],
+            "returnPaths": [],
+            "hasLocalCatch": false,
+            "catchFallback": null,
+            "keyPrefix": null,
+            "diagnostics": []
+          }
+        }
+      ],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "choose evaluates when conditions in order; only the first true branch runs, otherwise runs when none match.",
+          "provenance": "apim-rule",
+          "ruleId": "choose.first-match"
+        },
+        {
+          "text": "1 when clause in priority order; no otherwise (no match continues).",
+          "provenance": "structural",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:subscription-guard#1/0/when1/0",
+      "kind": "step",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:subscription-guard#1/0",
+      "order": 1,
+      "label": "Return 401 Unauthorized",
+      "labelProvenance": "structural",
+      "tag": "return-response",
+      "category": "response",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 24,
+        "startColumn": 5,
+        "endLine": 29,
+        "endColumn": 22
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [
+        {
+          "name": "set-status/@code",
+          "value": "401",
+          "isExpression": false
+        },
+        {
+          "name": "set-status/@reason",
+          "value": "Unauthorized",
+          "isExpression": false
+        },
+        {
+          "name": "set-header/@name",
+          "value": "WWW-Authenticate",
+          "isExpression": false
+        },
+        {
+          "name": "set-header/@exists-action",
+          "value": "override",
+          "isExpression": false
+        },
+        {
+          "name": "set-header/value",
+          "value": "Bearer",
+          "isExpression": false
+        }
+      ],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Status 401 Unauthorized from set-status.",
+          "provenance": "structural",
+          "ruleId": null
+        },
+        {
+          "text": "return-response ends the pipeline immediately and returns the response to the caller; later policies and stages do not run and On-error is not entered.",
+          "provenance": "apim-rule",
+          "ruleId": "return-response.terminates"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [
+          "401"
+        ],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:subscription-guard#1/0/merge",
+      "kind": "merge",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:subscription-guard#1/0",
+      "order": 2,
+      "label": "Merge",
+      "labelProvenance": "structural",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": null,
+      "span": null,
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Every non-terminating branch rejoins here before the next policy.",
+          "provenance": "structural",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:caller-authentication#1",
+      "kind": "group",
+      "stage": "inbound",
+      "parentId": "stage:inbound",
+      "order": 3,
+      "label": "Authenticate caller",
+      "labelProvenance": "comment",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": {
+        "name": "caller-authentication",
+        "occurrenceId": "caller-authentication#1",
+        "index": 1,
+        "count": 1,
+        "description": "Fragment: Caller authentication\nPurpose: validates the bearer token issued by the example identity provider."
+      },
+      "span": {
+        "startLine": 34,
+        "startColumn": 3,
+        "endLine": 50,
+        "endColumn": 74
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": "Fragment: Caller authentication\nPurpose: validates the bearer token issued by the example identity provider.",
+      "badges": [],
+      "facts": [
+        {
+          "text": "Fragment \u0027caller-authentication\u0027 occurrence 1 of 1, delimited by include-fragment Begin/End marker comments.",
+          "provenance": "comment",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": true
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:caller-authentication#1/0",
+      "kind": "step",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:caller-authentication#1",
+      "order": 0,
+      "label": "Validate JWT",
+      "labelProvenance": "structural",
+      "tag": "validate-jwt",
+      "category": "authentication",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 39,
+        "startColumn": 3,
+        "endLine": 49,
+        "endColumn": 17
+      },
+      "attributes": [
+        {
+          "name": "header-name",
+          "value": "Authorization",
+          "isExpression": false
+        },
+        {
+          "name": "failed-validation-httpcode",
+          "value": "401",
+          "isExpression": false
+        },
+        {
+          "name": "failed-validation-error-message",
+          "value": "Unauthorized",
+          "isExpression": false
+        },
+        {
+          "name": "output-token-variable-name",
+          "value": "callerToken",
+          "isExpression": false
+        }
+      ],
+      "expressions": [],
+      "properties": [
+        {
+          "name": "openid-config/@url",
+          "value": "https://login.example.test/.well-known/openid-configuration",
+          "isExpression": false
+        },
+        {
+          "name": "audiences/audience",
+          "value": "api://example-gateway",
+          "isExpression": false
+        },
+        {
+          "name": "required-claims/claim/@name",
+          "value": "roles",
+          "isExpression": false
+        },
+        {
+          "name": "required-claims/claim/@match",
+          "value": "any",
+          "isExpression": false
+        },
+        {
+          "name": "required-claims/claim/value",
+          "value": "Gateway.Invoke",
+          "isExpression": false
+        }
+      ],
+      "comment": "Fragment: Caller authentication\nPurpose: validates the bearer token issued by the example identity provider.",
+      "badges": [],
+      "facts": [
+        {
+          "text": "A failed validate-jwt check raises an error (handled by On-error, not an explicit response).",
+          "provenance": "apim-rule",
+          "ruleId": "validate-jwt.raises-on-failure"
+        },
+        {
+          "text": "failed-validation-httpcode=401 sets the status of the raised error; it is not an explicit response.",
+          "provenance": "apim-rule",
+          "ruleId": "validate-jwt.failed-validation-httpcode"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": true
+      },
+      "variablesRead": [],
+      "variablesWritten": [
+        "callerToken"
+      ]
+    },
+    {
+      "id": "inbound/fragment:model-resolution#1",
+      "kind": "group",
+      "stage": "inbound",
+      "parentId": "stage:inbound",
+      "order": 4,
+      "label": "Validate model",
+      "labelProvenance": "comment",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": {
+        "name": "model-resolution",
+        "occurrenceId": "model-resolution#1",
+        "index": 1,
+        "count": 1,
+        "description": null
+      },
+      "span": {
+        "startLine": 52,
+        "startColumn": 3,
+        "endLine": 54,
+        "endColumn": 69
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Fragment \u0027model-resolution\u0027 occurrence 1 of 1, delimited by include-fragment Begin/End marker comments.",
+          "provenance": "comment",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:model-resolution#1/0",
+      "kind": "step",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:model-resolution#1",
+      "order": 0,
+      "label": "Set variable requestedModel",
+      "labelProvenance": "structural",
+      "tag": "set-variable",
+      "category": "state",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 53,
+        "startColumn": 3,
+        "endLine": 53,
+        "endColumn": 1172
+      },
+      "attributes": [
+        {
+          "name": "name",
+          "value": "requestedModel",
+          "isExpression": false
+        },
+        {
+          "name": "value",
+          "value": "@{\r\n  try {\r\n    if (context.Request.Method == \u0022GET\u0022) { return \u0022none\u0022; }\r\n    var fromQuery = context.Request.Url.Query.GetValueOrDefault(\u0022model\u0022, \u0022\u0022);\r\n    if (!string.IsNullOrEmpty(fromQuery)) { return fromQuery; }\r\n    var path = context.Request.OriginalUrl.Path;\r\n    if (path.Contains(\u0022/deployments/\u0022)) { return path.Split(\u0027/\u0027)[3]; }\r\n    if (path.EndsWith(\u0022/models\u0022)) { return \u0022catalog\u0022; }\r\n    var fromHeader = context.Request.Headers.GetValueOrDefault(\u0022x-model\u0022, \u0022\u0022);\r\n    if (fromHeader != \u0022\u0022) { return fromHeader; }\r\n    var body = context.Request.Body?.As\u003CJObject\u003E(preserveContent: true);\r\n    if (body != null \u0026\u0026 body[\u0022model\u0022] != null) { return body[\u0022model\u0022].ToString(); }\r\n    return \u0022\u0022;\r\n  } catch { return \u0022\u0022; }\r\n}",
+          "isExpression": true
+        }
+      ],
+      "expressions": [
+        {
+          "location": "@value",
+          "text": "@{\r\n  try {\r\n    if (context.Request.Method == \u0022GET\u0022) { return \u0022none\u0022; }\r\n    var fromQuery = context.Request.Url.Query.GetValueOrDefault(\u0022model\u0022, \u0022\u0022);\r\n    if (!string.IsNullOrEmpty(fromQuery)) { return fromQuery; }\r\n    var path = context.Request.OriginalUrl.Path;\r\n    if (path.Contains(\u0022/deployments/\u0022)) { return path.Split(\u0027/\u0027)[3]; }\r\n    if (path.EndsWith(\u0022/models\u0022)) { return \u0022catalog\u0022; }\r\n    var fromHeader = context.Request.Headers.GetValueOrDefault(\u0022x-model\u0022, \u0022\u0022);\r\n    if (fromHeader != \u0022\u0022) { return fromHeader; }\r\n    var body = context.Request.Body?.As\u003CJObject\u003E(preserveContent: true);\r\n    if (body != null \u0026\u0026 body[\u0022model\u0022] != null) { return body[\u0022model\u0022].ToString(); }\r\n    return \u0022\u0022;\r\n  } catch { return \u0022\u0022; }\r\n}",
+          "span": {
+            "startLine": 53,
+            "startColumn": 46,
+            "endLine": 53,
+            "endColumn": 1168
+          },
+          "analysis": {
+            "opaque": false,
+            "summary": null,
+            "variablesRead": [],
+            "namedValues": [],
+            "contextMembers": [
+              "Request.Method",
+              "Request.Url.Query[\u0022model\u0022]",
+              "Request.OriginalUrl.Path",
+              "Request.Headers[\u0022x-model\u0022]",
+              "Request.Body"
+            ],
+            "returnPaths": [
+              {
+                "order": 1,
+                "condition": "context.Request.Method == \u0022GET\u0022",
+                "conditionSummary": "Request method = \u0022GET\u0022",
+                "valueKind": "literal",
+                "valueText": "\u0022none\u0022"
+              },
+              {
+                "order": 2,
+                "condition": "!string.IsNullOrEmpty(fromQuery)",
+                "conditionSummary": "fromQuery is not empty",
+                "valueKind": "variable",
+                "valueText": "fromQuery"
+              },
+              {
+                "order": 3,
+                "condition": "path.Contains(\u0022/deployments/\u0022)",
+                "conditionSummary": "path contains \u0022/deployments/\u0022",
+                "valueKind": "expression",
+                "valueText": "path.Split(\u0027/\u0027)[3]"
+              },
+              {
+                "order": 4,
+                "condition": "path.EndsWith(\u0022/models\u0022)",
+                "conditionSummary": "path ends with \u0022/models\u0022",
+                "valueKind": "literal",
+                "valueText": "\u0022catalog\u0022"
+              },
+              {
+                "order": 5,
+                "condition": "fromHeader != \u0022\u0022",
+                "conditionSummary": "fromHeader != \u0022\u0022",
+                "valueKind": "variable",
+                "valueText": "fromHeader"
+              },
+              {
+                "order": 6,
+                "condition": "body != null \u0026\u0026 body[\u0022model\u0022] != null",
+                "conditionSummary": null,
+                "valueKind": "expression",
+                "valueText": "body[\u0022model\u0022].ToString()"
+              },
+              {
+                "order": 7,
+                "condition": null,
+                "conditionSummary": null,
+                "valueKind": "literal",
+                "valueText": "\u0022\u0022"
+              }
+            ],
+            "hasLocalCatch": true,
+            "catchFallback": "\u0022\u0022",
+            "keyPrefix": null,
+            "diagnostics": []
+          }
+        }
+      ],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "@value: 7 ordered return path(s) yield the value used by this policy; a C# return is expression-local, not a pipeline response.",
+          "provenance": "inferred",
+          "ruleId": null
+        },
+        {
+          "text": "@value: exceptions are caught inside the expression (fallback \u0022\u0022); this is not an On-error transfer.",
+          "provenance": "inferred",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": [
+        "requestedModel"
+      ]
+    },
+    {
+      "id": "inbound/fragment:model-allowlist#1",
+      "kind": "group",
+      "stage": "inbound",
+      "parentId": "stage:inbound",
+      "order": 5,
+      "label": "Enforce model allow-list",
+      "labelProvenance": "comment",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": {
+        "name": "model-allowlist",
+        "occurrenceId": "model-allowlist#1",
+        "index": 1,
+        "count": 1,
+        "description": null
+      },
+      "span": {
+        "startLine": 56,
+        "startColumn": 3,
+        "endLine": 70,
+        "endColumn": 68
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Fragment \u0027model-allowlist\u0027 occurrence 1 of 1, delimited by include-fragment Begin/End marker comments.",
+          "provenance": "comment",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [
+          "400",
+          "404"
+        ],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:model-allowlist#1/0",
+      "kind": "choose",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:model-allowlist#1",
+      "order": 0,
+      "label": "Choose: variable requestedModel is empty",
+      "labelProvenance": "structural",
+      "tag": "choose",
+      "category": "control",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 57,
+        "startColumn": 3,
+        "endLine": 69,
+        "endColumn": 11
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [
+        "configuration-dependent"
+      ],
+      "facts": [],
+      "exits": {
+        "explicitResponseCodes": [
+          "400",
+          "404"
+        ],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:model-allowlist#1/0/decision",
+      "kind": "decision",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:model-allowlist#1/0",
+      "order": 0,
+      "label": "First match of 2 conditions, else continue",
+      "labelProvenance": "structural",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 57,
+        "startColumn": 3,
+        "endLine": 69,
+        "endColumn": 11
+      },
+      "attributes": [],
+      "expressions": [
+        {
+          "location": "when[1]/@condition",
+          "text": "@(string.IsNullOrEmpty((string)context.Variables[\u0022requestedModel\u0022]))",
+          "span": {
+            "startLine": 58,
+            "startColumn": 21,
+            "endLine": 58,
+            "endColumn": 106
+          },
+          "analysis": {
+            "opaque": false,
+            "summary": "variable requestedModel is empty",
+            "variablesRead": [
+              "requestedModel"
+            ],
+            "namedValues": [],
+            "contextMembers": [],
+            "returnPaths": [],
+            "hasLocalCatch": false,
+            "catchFallback": null,
+            "keyPrefix": null,
+            "diagnostics": []
+          }
+        },
+        {
+          "location": "when[2]/@condition",
+          "text": "@(!\u0022{{allowed-models}}\u0022.Contains((string)context.Variables[\u0022requestedModel\u0022]))",
+          "span": {
+            "startLine": 64,
+            "startColumn": 21,
+            "endLine": 64,
+            "endColumn": 134
+          },
+          "analysis": {
+            "opaque": false,
+            "summary": "{{allowed-models}} does not contain variable requestedModel",
+            "variablesRead": [
+              "requestedModel"
+            ],
+            "namedValues": [
+              "allowed-models"
+            ],
+            "contextMembers": [],
+            "returnPaths": [],
+            "hasLocalCatch": false,
+            "catchFallback": null,
+            "keyPrefix": null,
+            "diagnostics": []
+          }
+        }
+      ],
+      "properties": [],
+      "comment": null,
+      "badges": [
+        "configuration-dependent"
+      ],
+      "facts": [
+        {
+          "text": "choose evaluates when conditions in order; only the first true branch runs, otherwise runs when none match.",
+          "provenance": "apim-rule",
+          "ruleId": "choose.first-match"
+        },
+        {
+          "text": "2 when clauses in priority order; no otherwise (no match continues).",
+          "provenance": "structural",
+          "ruleId": null
+        },
+        {
+          "text": "Configuration-dependent: reads named value {{allowed-models}}. Every branch is still shown.",
+          "provenance": "inferred",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [
+        "requestedModel"
+      ],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:model-allowlist#1/0/when1/0",
+      "kind": "step",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:model-allowlist#1/0",
+      "order": 1,
+      "label": "Return 400 Bad Request",
+      "labelProvenance": "structural",
+      "tag": "return-response",
+      "category": "response",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 59,
+        "startColumn": 5,
+        "endLine": 62,
+        "endColumn": 22
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [
+        {
+          "name": "set-status/@code",
+          "value": "400",
+          "isExpression": false
+        },
+        {
+          "name": "set-status/@reason",
+          "value": "Bad Request",
+          "isExpression": false
+        },
+        {
+          "name": "set-body",
+          "value": "{\u0022error\u0022:\u0022model is required\u0022}",
+          "isExpression": false
+        }
+      ],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Status 400 Bad Request from set-status.",
+          "provenance": "structural",
+          "ruleId": null
+        },
+        {
+          "text": "return-response ends the pipeline immediately and returns the response to the caller; later policies and stages do not run and On-error is not entered.",
+          "provenance": "apim-rule",
+          "ruleId": "return-response.terminates"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [
+          "400"
+        ],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:model-allowlist#1/0/when2/0",
+      "kind": "step",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:model-allowlist#1/0",
+      "order": 2,
+      "label": "Return 404 Not Found",
+      "labelProvenance": "structural",
+      "tag": "return-response",
+      "category": "response",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 65,
+        "startColumn": 5,
+        "endLine": 67,
+        "endColumn": 22
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [
+        {
+          "name": "set-status/@code",
+          "value": "404",
+          "isExpression": false
+        },
+        {
+          "name": "set-status/@reason",
+          "value": "Not Found",
+          "isExpression": false
+        }
+      ],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Status 404 Not Found from set-status.",
+          "provenance": "structural",
+          "ruleId": null
+        },
+        {
+          "text": "return-response ends the pipeline immediately and returns the response to the caller; later policies and stages do not run and On-error is not entered.",
+          "provenance": "apim-rule",
+          "ruleId": "return-response.terminates"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [
+          "404"
+        ],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:model-allowlist#1/0/merge",
+      "kind": "merge",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:model-allowlist#1/0",
+      "order": 3,
+      "label": "Merge",
+      "labelProvenance": "structural",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": null,
+      "span": null,
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Every non-terminating branch rejoins here before the next policy.",
+          "provenance": "structural",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:maintenance-gate#1",
+      "kind": "group",
+      "stage": "inbound",
+      "parentId": "stage:inbound",
+      "order": 6,
+      "label": "Maintenance gate",
+      "labelProvenance": "comment",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": {
+        "name": "maintenance-gate",
+        "occurrenceId": "maintenance-gate#1",
+        "index": 1,
+        "count": 1,
+        "description": null
+      },
+      "span": {
+        "startLine": 72,
+        "startColumn": 3,
+        "endLine": 80,
+        "endColumn": 69
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Fragment \u0027maintenance-gate\u0027 occurrence 1 of 1, delimited by include-fragment Begin/End marker comments.",
+          "provenance": "comment",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [
+          "503"
+        ],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:maintenance-gate#1/0",
+      "kind": "choose",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:maintenance-gate#1",
+      "order": 0,
+      "label": "Choose: variable maintenanceMode",
+      "labelProvenance": "structural",
+      "tag": "choose",
+      "category": "control",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 73,
+        "startColumn": 3,
+        "endLine": 79,
+        "endColumn": 11
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [
+        "configuration-dependent",
+        "variable-not-assigned"
+      ],
+      "facts": [],
+      "exits": {
+        "explicitResponseCodes": [
+          "503"
+        ],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:maintenance-gate#1/0/decision",
+      "kind": "decision",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:maintenance-gate#1/0",
+      "order": 0,
+      "label": "First match of 1 condition, else continue",
+      "labelProvenance": "structural",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 73,
+        "startColumn": 3,
+        "endLine": 79,
+        "endColumn": 11
+      },
+      "attributes": [],
+      "expressions": [
+        {
+          "location": "when[1]/@condition",
+          "text": "@(context.Variables.GetValueOrDefault\u003Cbool\u003E(\u0022maintenanceMode\u0022, false))",
+          "span": {
+            "startLine": 74,
+            "startColumn": 21,
+            "endLine": 74,
+            "endColumn": 122
+          },
+          "analysis": {
+            "opaque": false,
+            "summary": "variable maintenanceMode",
+            "variablesRead": [
+              "maintenanceMode"
+            ],
+            "namedValues": [],
+            "contextMembers": [],
+            "returnPaths": [],
+            "hasLocalCatch": false,
+            "catchFallback": null,
+            "keyPrefix": null,
+            "diagnostics": []
+          }
+        }
+      ],
+      "properties": [],
+      "comment": null,
+      "badges": [
+        "configuration-dependent",
+        "variable-not-assigned"
+      ],
+      "facts": [
+        {
+          "text": "choose evaluates when conditions in order; only the first true branch runs, otherwise runs when none match.",
+          "provenance": "apim-rule",
+          "ruleId": "choose.first-match"
+        },
+        {
+          "text": "1 when clause in priority order; no otherwise (no match continues).",
+          "provenance": "structural",
+          "ruleId": null
+        },
+        {
+          "text": "Configuration-dependent: reads variable maintenanceMode (not assigned in this policy). Every branch is still shown.",
+          "provenance": "inferred",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [
+        "maintenanceMode"
+      ],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:maintenance-gate#1/0/when1/0",
+      "kind": "step",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:maintenance-gate#1/0",
+      "order": 1,
+      "label": "Return 503 Service Unavailable",
+      "labelProvenance": "structural",
+      "tag": "return-response",
+      "category": "response",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 75,
+        "startColumn": 5,
+        "endLine": 77,
+        "endColumn": 22
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [
+        {
+          "name": "set-status/@code",
+          "value": "503",
+          "isExpression": false
+        },
+        {
+          "name": "set-status/@reason",
+          "value": "Service Unavailable",
+          "isExpression": false
+        }
+      ],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Status 503 Service Unavailable from set-status.",
+          "provenance": "structural",
+          "ruleId": null
+        },
+        {
+          "text": "return-response ends the pipeline immediately and returns the response to the caller; later policies and stages do not run and On-error is not entered.",
+          "provenance": "apim-rule",
+          "ruleId": "return-response.terminates"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [
+          "503"
+        ],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:maintenance-gate#1/0/merge",
+      "kind": "merge",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:maintenance-gate#1/0",
+      "order": 2,
+      "label": "Merge",
+      "labelProvenance": "structural",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": null,
+      "span": null,
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Every non-terminating branch rejoins here before the next policy.",
+          "provenance": "structural",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:responses-ownership#1",
+      "kind": "group",
+      "stage": "inbound",
+      "parentId": "stage:inbound",
+      "order": 7,
+      "label": "Responses ownership",
+      "labelProvenance": "comment",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": {
+        "name": "responses-ownership",
+        "occurrenceId": "responses-ownership#1",
+        "index": 1,
+        "count": 1,
+        "description": null
+      },
+      "span": {
+        "startLine": 82,
+        "startColumn": 3,
+        "endLine": 91,
+        "endColumn": 72
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Fragment \u0027responses-ownership\u0027 occurrence 1 of 1, delimited by include-fragment Begin/End marker comments.",
+          "provenance": "comment",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [
+          "403"
+        ],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:responses-ownership#1/0",
+      "kind": "step",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:responses-ownership#1",
+      "order": 0,
+      "label": "Look up cached value into responseOwner",
+      "labelProvenance": "structural",
+      "tag": "cache-lookup-value",
+      "category": "cache",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 83,
+        "startColumn": 3,
+        "endLine": 83,
+        "endColumn": 232
+      },
+      "attributes": [
+        {
+          "name": "key",
+          "value": "@(\u0022responses-owner-\u0022 \u002B context.Request.MatchedParameters.GetValueOrDefault(\u0022responseId\u0022, \u0022\u0022))",
+          "isExpression": true
+        },
+        {
+          "name": "variable-name",
+          "value": "responseOwner",
+          "isExpression": false
+        },
+        {
+          "name": "caching-type",
+          "value": "internal",
+          "isExpression": false
+        }
+      ],
+      "expressions": [
+        {
+          "location": "@key",
+          "text": "@(\u0022responses-owner-\u0022 \u002B context.Request.MatchedParameters.GetValueOrDefault(\u0022responseId\u0022, \u0022\u0022))",
+          "span": {
+            "startLine": 83,
+            "startColumn": 28,
+            "endLine": 83,
+            "endColumn": 174
+          },
+          "analysis": {
+            "opaque": true,
+            "summary": null,
+            "variablesRead": [],
+            "namedValues": [],
+            "contextMembers": [
+              "Request.MatchedParameters[\u0022responseId\u0022]"
+            ],
+            "returnPaths": [],
+            "hasLocalCatch": false,
+            "catchFallback": null,
+            "keyPrefix": "responses-owner-",
+            "diagnostics": [
+              "Expression uses constructs outside the summarised subset; no summary inferred. Shown verbatim."
+            ]
+          }
+        }
+      ],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "State access: reads a cached value into variable responseOwner (default value when missing); not an early response.",
+          "provenance": "apim-rule",
+          "ruleId": "cache-lookup-value.state-access"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": [
+        "responseOwner"
+      ]
+    },
+    {
+      "id": "inbound/fragment:responses-ownership#1/1",
+      "kind": "choose",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:responses-ownership#1",
+      "order": 1,
+      "label": "Choose: variable responseOwner is set AND variable responseOwner != Subscriptio\u2026",
+      "labelProvenance": "structural",
+      "tag": "choose",
+      "category": "control",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 84,
+        "startColumn": 3,
+        "endLine": 90,
+        "endColumn": 11
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [],
+      "exits": {
+        "explicitResponseCodes": [
+          "403"
+        ],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:responses-ownership#1/1/decision",
+      "kind": "decision",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:responses-ownership#1/1",
+      "order": 0,
+      "label": "First match of 1 condition, else continue",
+      "labelProvenance": "structural",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 84,
+        "startColumn": 3,
+        "endLine": 90,
+        "endColumn": 11
+      },
+      "attributes": [],
+      "expressions": [
+        {
+          "location": "when[1]/@condition",
+          "text": "@(context.Variables.ContainsKey(\u0022responseOwner\u0022) \u0026\u0026 (string)context.Variables[\u0022responseOwner\u0022] != context.Subscription.Id)",
+          "span": {
+            "startLine": 85,
+            "startColumn": 21,
+            "endLine": 85,
+            "endColumn": 194
+          },
+          "analysis": {
+            "opaque": false,
+            "summary": "variable responseOwner is set AND variable responseOwner != Subscription id",
+            "variablesRead": [
+              "responseOwner"
+            ],
+            "namedValues": [],
+            "contextMembers": [
+              "Subscription.Id"
+            ],
+            "returnPaths": [],
+            "hasLocalCatch": false,
+            "catchFallback": null,
+            "keyPrefix": null,
+            "diagnostics": []
+          }
+        }
+      ],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "choose evaluates when conditions in order; only the first true branch runs, otherwise runs when none match.",
+          "provenance": "apim-rule",
+          "ruleId": "choose.first-match"
+        },
+        {
+          "text": "1 when clause in priority order; no otherwise (no match continues).",
+          "provenance": "structural",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [
+        "responseOwner"
+      ],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:responses-ownership#1/1/when1/0",
+      "kind": "step",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:responses-ownership#1/1",
+      "order": 1,
+      "label": "Return 403 Forbidden",
+      "labelProvenance": "structural",
+      "tag": "return-response",
+      "category": "response",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 86,
+        "startColumn": 5,
+        "endLine": 88,
+        "endColumn": 22
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [
+        {
+          "name": "set-status/@code",
+          "value": "403",
+          "isExpression": false
+        },
+        {
+          "name": "set-status/@reason",
+          "value": "Forbidden",
+          "isExpression": false
+        }
+      ],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Status 403 Forbidden from set-status.",
+          "provenance": "structural",
+          "ruleId": null
+        },
+        {
+          "text": "return-response ends the pipeline immediately and returns the response to the caller; later policies and stages do not run and On-error is not entered.",
+          "provenance": "apim-rule",
+          "ruleId": "return-response.terminates"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [
+          "403"
+        ],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:responses-ownership#1/1/merge",
+      "kind": "merge",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:responses-ownership#1/1",
+      "order": 2,
+      "label": "Merge",
+      "labelProvenance": "structural",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": null,
+      "span": null,
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Every non-terminating branch rejoins here before the next policy.",
+          "provenance": "structural",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:token-budget#1",
+      "kind": "group",
+      "stage": "inbound",
+      "parentId": "stage:inbound",
+      "order": 8,
+      "label": "Token budget",
+      "labelProvenance": "comment",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": {
+        "name": "token-budget",
+        "occurrenceId": "token-budget#1",
+        "index": 1,
+        "count": 1,
+        "description": null
+      },
+      "span": {
+        "startLine": 93,
+        "startColumn": 3,
+        "endLine": 95,
+        "endColumn": 65
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Fragment \u0027token-budget\u0027 occurrence 1 of 1, delimited by include-fragment Begin/End marker comments.",
+          "provenance": "comment",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": true
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:token-budget#1/0",
+      "kind": "step",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:token-budget#1",
+      "order": 0,
+      "label": "Token limit 5000 tokens/min",
+      "labelProvenance": "structural",
+      "tag": "llm-token-limit",
+      "category": "validation",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 94,
+        "startColumn": 3,
+        "endLine": 94,
+        "endColumn": 166
+      },
+      "attributes": [
+        {
+          "name": "counter-key",
+          "value": "@(context.Subscription.Id)",
+          "isExpression": true
+        },
+        {
+          "name": "tokens-per-minute",
+          "value": "5000",
+          "isExpression": false
+        },
+        {
+          "name": "estimate-prompt-tokens",
+          "value": "true",
+          "isExpression": false
+        },
+        {
+          "name": "remaining-tokens-variable-name",
+          "value": "remainingTokens",
+          "isExpression": false
+        }
+      ],
+      "expressions": [
+        {
+          "location": "@counter-key",
+          "text": "@(context.Subscription.Id)",
+          "span": {
+            "startLine": 94,
+            "startColumn": 33,
+            "endLine": 94,
+            "endColumn": 58
+          },
+          "analysis": {
+            "opaque": false,
+            "summary": "Subscription id",
+            "variablesRead": [],
+            "namedValues": [],
+            "contextMembers": [
+              "Subscription.Id"
+            ],
+            "returnPaths": [],
+            "hasLocalCatch": false,
+            "catchFallback": null,
+            "keyPrefix": null,
+            "diagnostics": []
+          }
+        }
+      ],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "A failed llm-token-limit check raises an error (handled by On-error, not an explicit response).",
+          "provenance": "apim-rule",
+          "ruleId": "llm-token-limit.raises-on-failure"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": true
+      },
+      "variablesRead": [],
+      "variablesWritten": [
+        "remainingTokens"
+      ]
+    },
+    {
+      "id": "inbound/fragment:backend-routing#1",
+      "kind": "group",
+      "stage": "inbound",
+      "parentId": "stage:inbound",
+      "order": 9,
+      "label": "Route to backend pool",
+      "labelProvenance": "comment",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": {
+        "name": "backend-routing",
+        "occurrenceId": "backend-routing#1",
+        "index": 1,
+        "count": 1,
+        "description": null
+      },
+      "span": {
+        "startLine": 97,
+        "startColumn": 3,
+        "endLine": 108,
+        "endColumn": 68
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Fragment \u0027backend-routing\u0027 occurrence 1 of 1, delimited by include-fragment Begin/End marker comments.",
+          "provenance": "comment",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:backend-routing#1/0",
+      "kind": "step",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:backend-routing#1",
+      "order": 0,
+      "label": "Set variable backendPool",
+      "labelProvenance": "structural",
+      "tag": "set-variable",
+      "category": "state",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 98,
+        "startColumn": 3,
+        "endLine": 98,
+        "endColumn": 93
+      },
+      "attributes": [
+        {
+          "name": "name",
+          "value": "backendPool",
+          "isExpression": false
+        },
+        {
+          "name": "value",
+          "value": "@(\u0022{{default-backend-pool}}\u0022)",
+          "isExpression": true
+        }
+      ],
+      "expressions": [
+        {
+          "location": "@value",
+          "text": "@(\u0022{{default-backend-pool}}\u0022)",
+          "span": {
+            "startLine": 98,
+            "startColumn": 43,
+            "endLine": 98,
+            "endColumn": 89
+          },
+          "analysis": {
+            "opaque": false,
+            "summary": "{{default-backend-pool}}",
+            "variablesRead": [],
+            "namedValues": [
+              "default-backend-pool"
+            ],
+            "contextMembers": [],
+            "returnPaths": [],
+            "hasLocalCatch": false,
+            "catchFallback": null,
+            "keyPrefix": "{{default-backend-pool}}",
+            "diagnostics": []
+          }
+        }
+      ],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": [
+        "backendPool"
+      ]
+    },
+    {
+      "id": "inbound/fragment:backend-routing#1/1",
+      "kind": "choose",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:backend-routing#1",
+      "order": 1,
+      "label": "Choose: variable requestedModel starts with \u0022gpt-\u0022",
+      "labelProvenance": "structural",
+      "tag": "choose",
+      "category": "control",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 99,
+        "startColumn": 3,
+        "endLine": 107,
+        "endColumn": 11
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [
+        "configuration-dependent"
+      ],
+      "facts": [],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:backend-routing#1/1/decision",
+      "kind": "decision",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:backend-routing#1/1",
+      "order": 0,
+      "label": "First match of 2 conditions, else otherwise",
+      "labelProvenance": "structural",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 99,
+        "startColumn": 3,
+        "endLine": 107,
+        "endColumn": 11
+      },
+      "attributes": [],
+      "expressions": [
+        {
+          "location": "when[1]/@condition",
+          "text": "@(((string)context.Variables[\u0022requestedModel\u0022]).StartsWith(\u0022gpt-\u0022))",
+          "span": {
+            "startLine": 100,
+            "startColumn": 21,
+            "endLine": 100,
+            "endColumn": 123
+          },
+          "analysis": {
+            "opaque": false,
+            "summary": "variable requestedModel starts with \u0022gpt-\u0022",
+            "variablesRead": [
+              "requestedModel"
+            ],
+            "namedValues": [],
+            "contextMembers": [],
+            "returnPaths": [],
+            "hasLocalCatch": false,
+            "catchFallback": null,
+            "keyPrefix": null,
+            "diagnostics": []
+          }
+        },
+        {
+          "location": "when[2]/@condition",
+          "text": "@((string)context.Variables[\u0022backendPool\u0022] == \u0022pool-b\u0022)",
+          "span": {
+            "startLine": 103,
+            "startColumn": 21,
+            "endLine": 103,
+            "endColumn": 111
+          },
+          "analysis": {
+            "opaque": false,
+            "summary": "variable backendPool = \u0022pool-b\u0022",
+            "variablesRead": [
+              "backendPool"
+            ],
+            "namedValues": [],
+            "contextMembers": [],
+            "returnPaths": [],
+            "hasLocalCatch": false,
+            "catchFallback": null,
+            "keyPrefix": null,
+            "diagnostics": []
+          }
+        }
+      ],
+      "properties": [],
+      "comment": null,
+      "badges": [
+        "configuration-dependent"
+      ],
+      "facts": [
+        {
+          "text": "choose evaluates when conditions in order; only the first true branch runs, otherwise runs when none match.",
+          "provenance": "apim-rule",
+          "ruleId": "choose.first-match"
+        },
+        {
+          "text": "2 when clauses in priority order; otherwise present.",
+          "provenance": "structural",
+          "ruleId": null
+        },
+        {
+          "text": "Configuration-dependent: reads variable backendPool (derived from configuration). Every branch is still shown.",
+          "provenance": "inferred",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [
+        "requestedModel",
+        "backendPool"
+      ],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:backend-routing#1/1/when1/0",
+      "kind": "step",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:backend-routing#1/1",
+      "order": 1,
+      "label": "Set backend service (expression)",
+      "labelProvenance": "structural",
+      "tag": "set-backend-service",
+      "category": "routing",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 101,
+        "startColumn": 5,
+        "endLine": 101,
+        "endColumn": 102
+      },
+      "attributes": [
+        {
+          "name": "backend-id",
+          "value": "@((string)context.Variables[\u0022backendPool\u0022])",
+          "isExpression": true
+        }
+      ],
+      "expressions": [
+        {
+          "location": "@backend-id",
+          "text": "@((string)context.Variables[\u0022backendPool\u0022])",
+          "span": {
+            "startLine": 101,
+            "startColumn": 38,
+            "endLine": 101,
+            "endColumn": 98
+          },
+          "analysis": {
+            "opaque": false,
+            "summary": "variable backendPool",
+            "variablesRead": [
+              "backendPool"
+            ],
+            "namedValues": [],
+            "contextMembers": [],
+            "returnPaths": [],
+            "hasLocalCatch": false,
+            "catchFallback": null,
+            "keyPrefix": null,
+            "diagnostics": []
+          }
+        }
+      ],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Routing-state update: selects the backend used by forward-request; this is not a call.",
+          "provenance": "apim-rule",
+          "ruleId": "set-backend-service.routing-state"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [
+        "backendPool"
+      ],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:backend-routing#1/1/otherwise/0",
+      "kind": "step",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:backend-routing#1/1",
+      "order": 2,
+      "label": "Set backend service fallback-pool",
+      "labelProvenance": "structural",
+      "tag": "set-backend-service",
+      "category": "routing",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 105,
+        "startColumn": 5,
+        "endLine": 105,
+        "endColumn": 54
+      },
+      "attributes": [
+        {
+          "name": "backend-id",
+          "value": "fallback-pool",
+          "isExpression": false
+        }
+      ],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Routing-state update: selects the backend used by forward-request; this is not a call.",
+          "provenance": "apim-rule",
+          "ruleId": "set-backend-service.routing-state"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:backend-routing#1/1/merge",
+      "kind": "merge",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:backend-routing#1/1",
+      "order": 3,
+      "label": "Merge",
+      "labelProvenance": "structural",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": null,
+      "span": null,
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Every non-terminating branch rejoins here before the next policy.",
+          "provenance": "structural",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:request-headers#1",
+      "kind": "group",
+      "stage": "inbound",
+      "parentId": "stage:inbound",
+      "order": 10,
+      "label": "Request headers",
+      "labelProvenance": "comment",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": {
+        "name": "request-headers",
+        "occurrenceId": "request-headers#1",
+        "index": 1,
+        "count": 1,
+        "description": null
+      },
+      "span": {
+        "startLine": 110,
+        "startColumn": 3,
+        "endLine": 127,
+        "endColumn": 68
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Fragment \u0027request-headers\u0027 occurrence 1 of 1, delimited by include-fragment Begin/End marker comments.",
+          "provenance": "comment",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:request-headers#1/fragment:correlation-id#1",
+      "kind": "group",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:request-headers#1",
+      "order": 0,
+      "label": "Correlation id",
+      "labelProvenance": "fragment-name",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": {
+        "name": "correlation-id",
+        "occurrenceId": "correlation-id#1",
+        "index": 1,
+        "count": 1,
+        "description": null
+      },
+      "span": {
+        "startLine": 111,
+        "startColumn": 3,
+        "endLine": 115,
+        "endColumn": 67
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Fragment \u0027correlation-id\u0027 occurrence 1 of 1, delimited by include-fragment Begin/End marker comments.",
+          "provenance": "comment",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:request-headers#1/fragment:correlation-id#1/0",
+      "kind": "step",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:request-headers#1/fragment:correlation-id#1",
+      "order": 0,
+      "label": "Set header x-correlation-id (if absent)",
+      "labelProvenance": "structural",
+      "tag": "set-header",
+      "category": "transformation",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 112,
+        "startColumn": 3,
+        "endLine": 114,
+        "endColumn": 15
+      },
+      "attributes": [
+        {
+          "name": "name",
+          "value": "x-correlation-id",
+          "isExpression": false
+        },
+        {
+          "name": "exists-action",
+          "value": "skip",
+          "isExpression": false
+        }
+      ],
+      "expressions": [
+        {
+          "location": "value",
+          "text": "@(context.RequestId.ToString())",
+          "span": {
+            "startLine": 113,
+            "startColumn": 11,
+            "endLine": 113,
+            "endColumn": 41
+          },
+          "analysis": {
+            "opaque": true,
+            "summary": null,
+            "variablesRead": [],
+            "namedValues": [],
+            "contextMembers": [
+              "RequestId"
+            ],
+            "returnPaths": [],
+            "hasLocalCatch": false,
+            "catchFallback": null,
+            "keyPrefix": null,
+            "diagnostics": [
+              "Expression uses constructs outside the summarised subset; no summary inferred. Shown verbatim."
+            ]
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "value",
+          "value": "@(context.RequestId.ToString())",
+          "isExpression": true
+        }
+      ],
+      "comment": null,
+      "badges": [],
+      "facts": [],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:request-headers#1/1",
+      "kind": "choose",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:request-headers#1",
+      "order": 1,
+      "label": "Choose: Request method = \u0022POST\u0022",
+      "labelProvenance": "structural",
+      "tag": "choose",
+      "category": "control",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 116,
+        "startColumn": 3,
+        "endLine": 123,
+        "endColumn": 11
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:request-headers#1/1/decision",
+      "kind": "decision",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:request-headers#1/1",
+      "order": 0,
+      "label": "First match of 1 condition, else continue",
+      "labelProvenance": "structural",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 116,
+        "startColumn": 3,
+        "endLine": 123,
+        "endColumn": 11
+      },
+      "attributes": [],
+      "expressions": [
+        {
+          "location": "when[1]/@condition",
+          "text": "@(context.Request.Method == \u0022POST\u0022)",
+          "span": {
+            "startLine": 117,
+            "startColumn": 21,
+            "endLine": 117,
+            "endColumn": 73
+          },
+          "analysis": {
+            "opaque": false,
+            "summary": "Request method = \u0022POST\u0022",
+            "variablesRead": [],
+            "namedValues": [],
+            "contextMembers": [
+              "Request.Method"
+            ],
+            "returnPaths": [],
+            "hasLocalCatch": false,
+            "catchFallback": null,
+            "keyPrefix": null,
+            "diagnostics": []
+          }
+        }
+      ],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "choose evaluates when conditions in order; only the first true branch runs, otherwise runs when none match.",
+          "provenance": "apim-rule",
+          "ruleId": "choose.first-match"
+        },
+        {
+          "text": "1 when clause in priority order; no otherwise (no match continues).",
+          "provenance": "structural",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:request-headers#1/1/when1/0",
+      "kind": "step",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:request-headers#1/1",
+      "order": 1,
+      "label": "Send request (response in auditResponse)",
+      "labelProvenance": "structural",
+      "tag": "send-request",
+      "category": "backend-call",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 118,
+        "startColumn": 5,
+        "endLine": 121,
+        "endColumn": 19
+      },
+      "attributes": [
+        {
+          "name": "mode",
+          "value": "new",
+          "isExpression": false
+        },
+        {
+          "name": "response-variable-name",
+          "value": "auditResponse",
+          "isExpression": false
+        },
+        {
+          "name": "timeout",
+          "value": "5",
+          "isExpression": false
+        },
+        {
+          "name": "ignore-error",
+          "value": "true",
+          "isExpression": false
+        }
+      ],
+      "expressions": [],
+      "properties": [
+        {
+          "name": "set-url",
+          "value": "https://audit.example.test/events",
+          "isExpression": false
+        },
+        {
+          "name": "set-method",
+          "value": "POST",
+          "isExpression": false
+        }
+      ],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "ignore-error=\u0022true\u0022: on failure processing continues with a null response variable (auditResponse).",
+          "provenance": "apim-rule",
+          "ruleId": "send-request.ignore-error"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": [
+        "auditResponse"
+      ]
+    },
+    {
+      "id": "inbound/fragment:request-headers#1/1/merge",
+      "kind": "merge",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:request-headers#1/1",
+      "order": 2,
+      "label": "Merge",
+      "labelProvenance": "structural",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": null,
+      "span": null,
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Every non-terminating branch rejoins here before the next policy.",
+          "provenance": "structural",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/fragment:request-headers#1/2",
+      "kind": "step",
+      "stage": "inbound",
+      "parentId": "inbound/fragment:request-headers#1",
+      "order": 2,
+      "label": "Trace example-gateway",
+      "labelProvenance": "structural",
+      "tag": "trace",
+      "category": "observability",
+      "observability": true,
+      "fragment": null,
+      "span": {
+        "startLine": 124,
+        "startColumn": 3,
+        "endLine": 126,
+        "endColumn": 10
+      },
+      "attributes": [
+        {
+          "name": "source",
+          "value": "example-gateway",
+          "isExpression": false
+        },
+        {
+          "name": "severity",
+          "value": "information",
+          "isExpression": false
+        }
+      ],
+      "expressions": [],
+      "properties": [
+        {
+          "name": "message",
+          "value": "request accepted",
+          "isExpression": false
+        }
+      ],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Observability only: records telemetry and does not change control flow.",
+          "provenance": "apim-rule",
+          "ruleId": "trace.observability"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "inbound/11",
+      "kind": "opaque",
+      "stage": "inbound",
+      "parentId": "stage:inbound",
+      "order": 11,
+      "label": "example-telemetry-probe (unrecognised)",
+      "labelProvenance": "structural",
+      "tag": "example-telemetry-probe",
+      "category": "unknown",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 130,
+        "startColumn": 3,
+        "endLine": 130,
+        "endColumn": 42
+      },
+      "attributes": [
+        {
+          "name": "mode",
+          "value": "basic",
+          "isExpression": false
+        }
+      ],
+      "expressions": [],
+      "properties": [],
+      "comment": "\u003Cinclude-fragment fragment-id=\u0022legacy-quota\u0022 /\u003E",
+      "badges": [
+        "opaque",
+        "has-diagnostics"
+      ],
+      "facts": [],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "backend/0",
+      "kind": "loop",
+      "stage": "backend",
+      "parentId": "stage:backend",
+      "order": 0,
+      "label": "Retry while Response status = 429 OR (status \u003E= 500 AND reason does not contain\u2026",
+      "labelProvenance": "structural",
+      "tag": "retry",
+      "category": "control",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 134,
+        "startColumn": 3,
+        "endLine": 149,
+        "endColumn": 10
+      },
+      "attributes": [
+        {
+          "name": "condition",
+          "value": "@(context.Response.StatusCode == 429 || (context.Response.StatusCode \u003E= 500 \u0026\u0026 !context.Response.StatusReason.Contains(\u0022Backend pool\u0022)))",
+          "isExpression": true
+        },
+        {
+          "name": "count",
+          "value": "2",
+          "isExpression": false
+        },
+        {
+          "name": "interval",
+          "value": "1",
+          "isExpression": false
+        },
+        {
+          "name": "max-interval",
+          "value": "8",
+          "isExpression": false
+        },
+        {
+          "name": "delta",
+          "value": "1",
+          "isExpression": false
+        },
+        {
+          "name": "first-fast-retry",
+          "value": "true",
+          "isExpression": false
+        }
+      ],
+      "expressions": [],
+      "properties": [],
+      "comment": "Step 12: Call the model backend with retries",
+      "badges": [],
+      "facts": [
+        {
+          "text": "condition = @(context.Response.StatusCode == 429 || (context.Response.StatusCode \u003E= 500 \u0026\u0026 !context.Response.StatusReason.Contains(\u0022Backend pool\u0022)))",
+          "provenance": "structural",
+          "ruleId": null
+        },
+        {
+          "text": "count = 2",
+          "provenance": "structural",
+          "ruleId": null
+        },
+        {
+          "text": "interval = 1",
+          "provenance": "structural",
+          "ruleId": null
+        },
+        {
+          "text": "max-interval = 8",
+          "provenance": "structural",
+          "ruleId": null
+        },
+        {
+          "text": "delta = 1",
+          "provenance": "structural",
+          "ruleId": null
+        },
+        {
+          "text": "first-fast-retry = true",
+          "provenance": "structural",
+          "ruleId": null
+        },
+        {
+          "text": "Repeats while Response status = 429 OR (status \u003E= 500 AND reason does not contain \u0022Backend pool\u0022) (and the retry budget remains).",
+          "provenance": "inferred",
+          "ruleId": null
+        },
+        {
+          "text": "At most 2 retries after the first attempt (3 attempts in total).",
+          "provenance": "inferred",
+          "ruleId": null
+        },
+        {
+          "text": "count is the maximum number of retries after the first attempt.",
+          "provenance": "apim-rule",
+          "ruleId": "retry.count"
+        },
+        {
+          "text": "The retry body runs once before the condition is evaluated; the first attempt uses the state prepared before the loop.",
+          "provenance": "apim-rule",
+          "ruleId": "retry.first-attempt"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": true
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "backend/0/fragment:backend-auth#1",
+      "kind": "group",
+      "stage": "backend",
+      "parentId": "backend/0",
+      "order": 0,
+      "label": "Backend authentication",
+      "labelProvenance": "comment",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": {
+        "name": "backend-auth",
+        "occurrenceId": "backend-auth#1",
+        "index": 1,
+        "count": 1,
+        "description": "Fragment: Backend authentication\nPurpose: obtains a managed identity token for the model backend."
+      },
+      "span": {
+        "startLine": 135,
+        "startColumn": 4,
+        "endLine": 141,
+        "endColumn": 66
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": "Fragment: Backend authentication\nPurpose: obtains a managed identity token for the model backend.",
+      "badges": [],
+      "facts": [
+        {
+          "text": "Fragment \u0027backend-auth\u0027 occurrence 1 of 1, delimited by include-fragment Begin/End marker comments.",
+          "provenance": "comment",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "backend/0/fragment:backend-auth#1/0",
+      "kind": "step",
+      "stage": "backend",
+      "parentId": "backend/0/fragment:backend-auth#1",
+      "order": 0,
+      "label": "Authenticate with managed identity",
+      "labelProvenance": "structural",
+      "tag": "authentication-managed-identity",
+      "category": "authentication",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 140,
+        "startColumn": 4,
+        "endLine": 140,
+        "endColumn": 119
+      },
+      "attributes": [
+        {
+          "name": "resource",
+          "value": "https://models.example.test",
+          "isExpression": false
+        },
+        {
+          "name": "output-token-variable-name",
+          "value": "backendToken",
+          "isExpression": false
+        }
+      ],
+      "expressions": [],
+      "properties": [],
+      "comment": "Fragment: Backend authentication\nPurpose: obtains a managed identity token for the model backend.",
+      "badges": [],
+      "facts": [],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": [
+        "backendToken"
+      ]
+    },
+    {
+      "id": "backend/0/fragment:backend-attempt-log#1",
+      "kind": "group",
+      "stage": "backend",
+      "parentId": "backend/0",
+      "order": 1,
+      "label": "Backend attempt log",
+      "labelProvenance": "fragment-name",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": {
+        "name": "backend-attempt-log",
+        "occurrenceId": "backend-attempt-log#1",
+        "index": 1,
+        "count": 1,
+        "description": null
+      },
+      "span": {
+        "startLine": 142,
+        "startColumn": 4,
+        "endLine": 147,
+        "endColumn": 73
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Fragment \u0027backend-attempt-log\u0027 occurrence 1 of 1, delimited by include-fragment Begin/End marker comments.",
+          "provenance": "comment",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "backend/0/fragment:backend-attempt-log#1/0",
+      "kind": "step",
+      "stage": "backend",
+      "parentId": "backend/0/fragment:backend-attempt-log#1",
+      "order": 0,
+      "label": "Set variable attempt",
+      "labelProvenance": "structural",
+      "tag": "set-variable",
+      "category": "state",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 143,
+        "startColumn": 4,
+        "endLine": 143,
+        "endColumn": 136
+      },
+      "attributes": [
+        {
+          "name": "name",
+          "value": "attempt",
+          "isExpression": false
+        },
+        {
+          "name": "value",
+          "value": "@(context.Variables.GetValueOrDefault\u003Cint\u003E(\u0022attempt\u0022, 0) \u002B 1)",
+          "isExpression": true
+        }
+      ],
+      "expressions": [
+        {
+          "location": "@value",
+          "text": "@(context.Variables.GetValueOrDefault\u003Cint\u003E(\u0022attempt\u0022, 0) \u002B 1)",
+          "span": {
+            "startLine": 143,
+            "startColumn": 40,
+            "endLine": 143,
+            "endColumn": 132
+          },
+          "analysis": {
+            "opaque": true,
+            "summary": null,
+            "variablesRead": [
+              "attempt"
+            ],
+            "namedValues": [],
+            "contextMembers": [],
+            "returnPaths": [],
+            "hasLocalCatch": false,
+            "catchFallback": null,
+            "keyPrefix": null,
+            "diagnostics": [
+              "Expression uses constructs outside the summarised subset; no summary inferred. Shown verbatim."
+            ]
+          }
+        }
+      ],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [
+        "attempt"
+      ],
+      "variablesWritten": [
+        "attempt"
+      ]
+    },
+    {
+      "id": "backend/0/fragment:backend-attempt-log#1/1",
+      "kind": "step",
+      "stage": "backend",
+      "parentId": "backend/0/fragment:backend-attempt-log#1",
+      "order": 1,
+      "label": "Emit metric backend-attempts",
+      "labelProvenance": "structural",
+      "tag": "emit-metric",
+      "category": "observability",
+      "observability": true,
+      "fragment": null,
+      "span": {
+        "startLine": 144,
+        "startColumn": 4,
+        "endLine": 146,
+        "endColumn": 17
+      },
+      "attributes": [
+        {
+          "name": "name",
+          "value": "backend-attempts",
+          "isExpression": false
+        },
+        {
+          "name": "value",
+          "value": "1",
+          "isExpression": false
+        }
+      ],
+      "expressions": [],
+      "properties": [
+        {
+          "name": "dimension/@name",
+          "value": "model",
+          "isExpression": false
+        }
+      ],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Observability only: records telemetry and does not change control flow.",
+          "provenance": "apim-rule",
+          "ruleId": "emit-metric.observability"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "backend/0/2",
+      "kind": "step",
+      "stage": "backend",
+      "parentId": "backend/0",
+      "order": 2,
+      "label": "Forward request to backend",
+      "labelProvenance": "structural",
+      "tag": "forward-request",
+      "category": "backend-call",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 148,
+        "startColumn": 4,
+        "endLine": 148,
+        "endColumn": 60
+      },
+      "attributes": [
+        {
+          "name": "timeout",
+          "value": "120",
+          "isExpression": false
+        },
+        {
+          "name": "buffer-response",
+          "value": "false",
+          "isExpression": false
+        }
+      ],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Primary backend call: sends the request to the backend selected by routing state.",
+          "provenance": "apim-rule",
+          "ruleId": "forward-request.primary-call"
+        },
+        {
+          "text": "Transport failures (timeout, connection errors) raise an error.",
+          "provenance": "apim-rule",
+          "ruleId": "forward-request.transport-failure"
+        },
+        {
+          "text": "Backend HTTP error responses (4xx/5xx) continue to Outbound; they are not On-error events.",
+          "provenance": "apim-rule",
+          "ruleId": "forward-request.http-status-continues"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": true
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "backend/0/test",
+      "kind": "loop-test",
+      "stage": "backend",
+      "parentId": "backend/0",
+      "order": 3,
+      "label": "Retry if Response status = 429 OR (status \u003E= 500 AND reason does not contain \u0022B\u2026",
+      "labelProvenance": "structural",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 134,
+        "startColumn": 10,
+        "endLine": 134,
+        "endColumn": 198
+      },
+      "attributes": [],
+      "expressions": [
+        {
+          "location": "@condition",
+          "text": "@(context.Response.StatusCode == 429 || (context.Response.StatusCode \u003E= 500 \u0026\u0026 !context.Response.StatusReason.Contains(\u0022Backend pool\u0022)))",
+          "span": {
+            "startLine": 134,
+            "startColumn": 21,
+            "endLine": 134,
+            "endColumn": 197
+          },
+          "analysis": {
+            "opaque": false,
+            "summary": "Response status = 429 OR (status \u003E= 500 AND reason does not contain \u0022Backend pool\u0022)",
+            "variablesRead": [],
+            "namedValues": [],
+            "contextMembers": [
+              "Response.StatusCode",
+              "Response.StatusReason"
+            ],
+            "returnPaths": [],
+            "hasLocalCatch": false,
+            "catchFallback": null,
+            "keyPrefix": null,
+            "diagnostics": []
+          }
+        }
+      ],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "After each attempt the body repeats only while the condition is true and the retry count budget remains.",
+          "provenance": "apim-rule",
+          "ruleId": "retry.loop-test"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "outbound/0",
+      "kind": "step",
+      "stage": "outbound",
+      "parentId": "stage:outbound",
+      "order": 0,
+      "label": "Inherited policies (base)",
+      "labelProvenance": "structural",
+      "tag": "base",
+      "category": "inherited",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 152,
+        "startColumn": 3,
+        "endLine": 152,
+        "endColumn": 10
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Inherited policies of the enclosing scope run at this position.",
+          "provenance": "apim-rule",
+          "ruleId": "base.inherited"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "outbound/fragment:response-cache-store#1",
+      "kind": "group",
+      "stage": "outbound",
+      "parentId": "stage:outbound",
+      "order": 1,
+      "label": "Remember response ownership",
+      "labelProvenance": "comment",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": {
+        "name": "response-cache-store",
+        "occurrenceId": "response-cache-store#1",
+        "index": 1,
+        "count": 1,
+        "description": null
+      },
+      "span": {
+        "startLine": 154,
+        "startColumn": 3,
+        "endLine": 156,
+        "endColumn": 73
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Fragment \u0027response-cache-store\u0027 occurrence 1 of 1, delimited by include-fragment Begin/End marker comments.",
+          "provenance": "comment",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "outbound/fragment:response-cache-store#1/0",
+      "kind": "step",
+      "stage": "outbound",
+      "parentId": "outbound/fragment:response-cache-store#1",
+      "order": 0,
+      "label": "Store value in cache",
+      "labelProvenance": "structural",
+      "tag": "cache-store-value",
+      "category": "cache",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 155,
+        "startColumn": 3,
+        "endLine": 155,
+        "endColumn": 246
+      },
+      "attributes": [
+        {
+          "name": "key",
+          "value": "@(\u0022responses-owner-\u0022 \u002B context.Response.Headers.GetValueOrDefault(\u0022x-response-id\u0022, \u0022\u0022))",
+          "isExpression": true
+        },
+        {
+          "name": "value",
+          "value": "@(context.Subscription.Id)",
+          "isExpression": true
+        },
+        {
+          "name": "duration",
+          "value": "3600",
+          "isExpression": false
+        },
+        {
+          "name": "caching-type",
+          "value": "internal",
+          "isExpression": false
+        }
+      ],
+      "expressions": [
+        {
+          "location": "@key",
+          "text": "@(\u0022responses-owner-\u0022 \u002B context.Response.Headers.GetValueOrDefault(\u0022x-response-id\u0022, \u0022\u0022))",
+          "span": {
+            "startLine": 155,
+            "startColumn": 27,
+            "endLine": 155,
+            "endColumn": 167
+          },
+          "analysis": {
+            "opaque": true,
+            "summary": null,
+            "variablesRead": [],
+            "namedValues": [],
+            "contextMembers": [
+              "Response.Headers[\u0022x-response-id\u0022]"
+            ],
+            "returnPaths": [],
+            "hasLocalCatch": false,
+            "catchFallback": null,
+            "keyPrefix": "responses-owner-",
+            "diagnostics": [
+              "Expression uses constructs outside the summarised subset; no summary inferred. Shown verbatim."
+            ]
+          }
+        },
+        {
+          "location": "@value",
+          "text": "@(context.Subscription.Id)",
+          "span": {
+            "startLine": 155,
+            "startColumn": 177,
+            "endLine": 155,
+            "endColumn": 202
+          },
+          "analysis": {
+            "opaque": false,
+            "summary": "Subscription id",
+            "variablesRead": [],
+            "namedValues": [],
+            "contextMembers": [
+              "Subscription.Id"
+            ],
+            "returnPaths": [],
+            "hasLocalCatch": false,
+            "catchFallback": null,
+            "keyPrefix": null,
+            "diagnostics": []
+          }
+        }
+      ],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "State write: stores a value in the cache for subsequent requests.",
+          "provenance": "apim-rule",
+          "ruleId": "cache-store-value.state-write"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "outbound/fragment:set-response-headers#1",
+      "kind": "group",
+      "stage": "outbound",
+      "parentId": "stage:outbound",
+      "order": 2,
+      "label": "Response headers \u00B7 outbound",
+      "labelProvenance": "comment",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": {
+        "name": "set-response-headers",
+        "occurrenceId": "set-response-headers#1",
+        "index": 1,
+        "count": 2,
+        "description": null
+      },
+      "span": {
+        "startLine": 158,
+        "startColumn": 3,
+        "endLine": 163,
+        "endColumn": 73
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Fragment \u0027set-response-headers\u0027 occurrence 1 of 2, delimited by include-fragment Begin/End marker comments.",
+          "provenance": "comment",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "outbound/fragment:set-response-headers#1/0",
+      "kind": "step",
+      "stage": "outbound",
+      "parentId": "outbound/fragment:set-response-headers#1",
+      "order": 0,
+      "label": "Set header x-served-by",
+      "labelProvenance": "structural",
+      "tag": "set-header",
+      "category": "transformation",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 159,
+        "startColumn": 3,
+        "endLine": 161,
+        "endColumn": 15
+      },
+      "attributes": [
+        {
+          "name": "name",
+          "value": "x-served-by",
+          "isExpression": false
+        },
+        {
+          "name": "exists-action",
+          "value": "override",
+          "isExpression": false
+        }
+      ],
+      "expressions": [],
+      "properties": [
+        {
+          "name": "value",
+          "value": "example-gateway",
+          "isExpression": false
+        }
+      ],
+      "comment": null,
+      "badges": [],
+      "facts": [],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "outbound/fragment:set-response-headers#1/1",
+      "kind": "step",
+      "stage": "outbound",
+      "parentId": "outbound/fragment:set-response-headers#1",
+      "order": 1,
+      "label": "Delete header x-powered-by",
+      "labelProvenance": "structural",
+      "tag": "set-header",
+      "category": "transformation",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 162,
+        "startColumn": 3,
+        "endLine": 162,
+        "endColumn": 59
+      },
+      "attributes": [
+        {
+          "name": "name",
+          "value": "x-powered-by",
+          "isExpression": false
+        },
+        {
+          "name": "exists-action",
+          "value": "delete",
+          "isExpression": false
+        }
+      ],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "entry:on-error",
+      "kind": "entry",
+      "stage": "on-error",
+      "parentId": "stage:on-error",
+      "order": 0,
+      "label": "On-error",
+      "labelProvenance": "structural",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": null,
+      "span": null,
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "On-error is an exception lane: it runs only after an execution failure.",
+          "provenance": "apim-rule",
+          "ruleId": "on-error.lane"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "on-error/0",
+      "kind": "step",
+      "stage": "on-error",
+      "parentId": "stage:on-error",
+      "order": 1,
+      "label": "Inherited policies (base)",
+      "labelProvenance": "structural",
+      "tag": "base",
+      "category": "inherited",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 166,
+        "startColumn": 3,
+        "endLine": 166,
+        "endColumn": 10
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Inherited policies of the enclosing scope run at this position.",
+          "provenance": "apim-rule",
+          "ruleId": "base.inherited"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "on-error/fragment:set-response-headers#2",
+      "kind": "group",
+      "stage": "on-error",
+      "parentId": "stage:on-error",
+      "order": 2,
+      "label": "Set response headers \u00B7 on-error",
+      "labelProvenance": "fragment-name",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": {
+        "name": "set-response-headers",
+        "occurrenceId": "set-response-headers#2",
+        "index": 2,
+        "count": 2,
+        "description": null
+      },
+      "span": {
+        "startLine": 167,
+        "startColumn": 3,
+        "endLine": 172,
+        "endColumn": 73
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Fragment \u0027set-response-headers\u0027 occurrence 2 of 2, delimited by include-fragment Begin/End marker comments.",
+          "provenance": "comment",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "on-error/fragment:set-response-headers#2/0",
+      "kind": "step",
+      "stage": "on-error",
+      "parentId": "on-error/fragment:set-response-headers#2",
+      "order": 0,
+      "label": "Set header x-served-by",
+      "labelProvenance": "structural",
+      "tag": "set-header",
+      "category": "transformation",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 168,
+        "startColumn": 3,
+        "endLine": 170,
+        "endColumn": 15
+      },
+      "attributes": [
+        {
+          "name": "name",
+          "value": "x-served-by",
+          "isExpression": false
+        },
+        {
+          "name": "exists-action",
+          "value": "override",
+          "isExpression": false
+        }
+      ],
+      "expressions": [],
+      "properties": [
+        {
+          "name": "value",
+          "value": "example-gateway",
+          "isExpression": false
+        }
+      ],
+      "comment": null,
+      "badges": [],
+      "facts": [],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "on-error/fragment:set-response-headers#2/1",
+      "kind": "step",
+      "stage": "on-error",
+      "parentId": "on-error/fragment:set-response-headers#2",
+      "order": 1,
+      "label": "Delete header x-powered-by",
+      "labelProvenance": "structural",
+      "tag": "set-header",
+      "category": "transformation",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 171,
+        "startColumn": 3,
+        "endLine": 171,
+        "endColumn": 59
+      },
+      "attributes": [
+        {
+          "name": "name",
+          "value": "x-powered-by",
+          "isExpression": false
+        },
+        {
+          "name": "exists-action",
+          "value": "delete",
+          "isExpression": false
+        }
+      ],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "on-error/fragment:error-shaping#1",
+      "kind": "group",
+      "stage": "on-error",
+      "parentId": "stage:on-error",
+      "order": 3,
+      "label": "Shape errors",
+      "labelProvenance": "comment",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": {
+        "name": "error-shaping",
+        "occurrenceId": "error-shaping#1",
+        "index": 1,
+        "count": 1,
+        "description": null
+      },
+      "span": {
+        "startLine": 174,
+        "startColumn": 3,
+        "endLine": 193,
+        "endColumn": 66
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Fragment \u0027error-shaping\u0027 occurrence 1 of 1, delimited by include-fragment Begin/End marker comments.",
+          "provenance": "comment",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [
+          "500"
+        ],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "on-error/fragment:error-shaping#1/0",
+      "kind": "choose",
+      "stage": "on-error",
+      "parentId": "on-error/fragment:error-shaping#1",
+      "order": 0,
+      "label": "Choose: Response status = 429",
+      "labelProvenance": "structural",
+      "tag": "choose",
+      "category": "control",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 175,
+        "startColumn": 3,
+        "endLine": 189,
+        "endColumn": 11
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [],
+      "exits": {
+        "explicitResponseCodes": [
+          "500"
+        ],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "on-error/fragment:error-shaping#1/0/decision",
+      "kind": "decision",
+      "stage": "on-error",
+      "parentId": "on-error/fragment:error-shaping#1/0",
+      "order": 0,
+      "label": "First match of 2 conditions, else continue",
+      "labelProvenance": "structural",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 175,
+        "startColumn": 3,
+        "endLine": 189,
+        "endColumn": 11
+      },
+      "attributes": [],
+      "expressions": [
+        {
+          "location": "when[1]/@condition",
+          "text": "@(context.Response.StatusCode == 429)",
+          "span": {
+            "startLine": 176,
+            "startColumn": 21,
+            "endLine": 176,
+            "endColumn": 57
+          },
+          "analysis": {
+            "opaque": false,
+            "summary": "Response status = 429",
+            "variablesRead": [],
+            "namedValues": [],
+            "contextMembers": [
+              "Response.StatusCode"
+            ],
+            "returnPaths": [],
+            "hasLocalCatch": false,
+            "catchFallback": null,
+            "keyPrefix": null,
+            "diagnostics": []
+          }
+        },
+        {
+          "location": "when[2]/@condition",
+          "text": "@(context.LastError.Reason == \u0022BackendConnectionFailure\u0022)",
+          "span": {
+            "startLine": 184,
+            "startColumn": 21,
+            "endLine": 184,
+            "endColumn": 95
+          },
+          "analysis": {
+            "opaque": false,
+            "summary": "LastError reason = \u0022BackendConnectionFailure\u0022",
+            "variablesRead": [],
+            "namedValues": [],
+            "contextMembers": [
+              "LastError.Reason"
+            ],
+            "returnPaths": [],
+            "hasLocalCatch": false,
+            "catchFallback": null,
+            "keyPrefix": null,
+            "diagnostics": []
+          }
+        }
+      ],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "choose evaluates when conditions in order; only the first true branch runs, otherwise runs when none match.",
+          "provenance": "apim-rule",
+          "ruleId": "choose.first-match"
+        },
+        {
+          "text": "2 when clauses in priority order; no otherwise (no match continues).",
+          "provenance": "structural",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "on-error/fragment:error-shaping#1/0/when1/0",
+      "kind": "step",
+      "stage": "on-error",
+      "parentId": "on-error/fragment:error-shaping#1/0",
+      "order": 1,
+      "label": "Emit metric throttled-requests",
+      "labelProvenance": "structural",
+      "tag": "emit-metric",
+      "category": "observability",
+      "observability": true,
+      "fragment": null,
+      "span": {
+        "startLine": 177,
+        "startColumn": 5,
+        "endLine": 179,
+        "endColumn": 18
+      },
+      "attributes": [
+        {
+          "name": "name",
+          "value": "throttled-requests",
+          "isExpression": false
+        },
+        {
+          "name": "value",
+          "value": "1",
+          "isExpression": false
+        }
+      ],
+      "expressions": [],
+      "properties": [
+        {
+          "name": "dimension/@name",
+          "value": "stage",
+          "isExpression": false
+        },
+        {
+          "name": "dimension/@value",
+          "value": "on-error",
+          "isExpression": false
+        }
+      ],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Observability only: records telemetry and does not change control flow.",
+          "provenance": "apim-rule",
+          "ruleId": "emit-metric.observability"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "on-error/fragment:error-shaping#1/0/when1/1",
+      "kind": "step",
+      "stage": "on-error",
+      "parentId": "on-error/fragment:error-shaping#1/0",
+      "order": 2,
+      "label": "Set header Retry-After",
+      "labelProvenance": "structural",
+      "tag": "set-header",
+      "category": "transformation",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 180,
+        "startColumn": 5,
+        "endLine": 182,
+        "endColumn": 17
+      },
+      "attributes": [
+        {
+          "name": "name",
+          "value": "Retry-After",
+          "isExpression": false
+        },
+        {
+          "name": "exists-action",
+          "value": "override",
+          "isExpression": false
+        }
+      ],
+      "expressions": [],
+      "properties": [
+        {
+          "name": "value",
+          "value": "10",
+          "isExpression": false
+        }
+      ],
+      "comment": null,
+      "badges": [],
+      "facts": [],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "on-error/fragment:error-shaping#1/0/when2/0",
+      "kind": "step",
+      "stage": "on-error",
+      "parentId": "on-error/fragment:error-shaping#1/0",
+      "order": 3,
+      "label": "Return 500 Internal Server Error",
+      "labelProvenance": "structural",
+      "tag": "return-response",
+      "category": "response",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 185,
+        "startColumn": 5,
+        "endLine": 187,
+        "endColumn": 22
+      },
+      "attributes": [],
+      "expressions": [],
+      "properties": [
+        {
+          "name": "set-status/@code",
+          "value": "500",
+          "isExpression": false
+        },
+        {
+          "name": "set-status/@reason",
+          "value": "Internal Server Error",
+          "isExpression": false
+        }
+      ],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Status 500 Internal Server Error from set-status.",
+          "provenance": "structural",
+          "ruleId": null
+        },
+        {
+          "text": "return-response ends the pipeline immediately and returns the response to the caller; later policies and stages do not run and On-error is not entered.",
+          "provenance": "apim-rule",
+          "ruleId": "return-response.terminates"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [
+          "500"
+        ],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "on-error/fragment:error-shaping#1/0/merge",
+      "kind": "merge",
+      "stage": "on-error",
+      "parentId": "on-error/fragment:error-shaping#1/0",
+      "order": 4,
+      "label": "Merge",
+      "labelProvenance": "structural",
+      "tag": null,
+      "category": "control",
+      "observability": false,
+      "fragment": null,
+      "span": null,
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "Every non-terminating branch rejoins here before the next policy.",
+          "provenance": "structural",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "on-error/fragment:error-shaping#1/1",
+      "kind": "step",
+      "stage": "on-error",
+      "parentId": "on-error/fragment:error-shaping#1",
+      "order": 1,
+      "label": "Set body",
+      "labelProvenance": "structural",
+      "tag": "set-body",
+      "category": "transformation",
+      "observability": false,
+      "fragment": null,
+      "span": {
+        "startLine": 190,
+        "startColumn": 3,
+        "endLine": 192,
+        "endColumn": 12
+      },
+      "attributes": [],
+      "expressions": [
+        {
+          "location": "text()",
+          "text": "@{\n  return new JObject(new JProperty(\u0022error\u0022, context.LastError.Message)).ToString();\n}",
+          "span": {
+            "startLine": 190,
+            "startColumn": 13,
+            "endLine": 192,
+            "endColumn": 1
+          },
+          "analysis": {
+            "opaque": false,
+            "summary": null,
+            "variablesRead": [],
+            "namedValues": [],
+            "contextMembers": [
+              "LastError.Message"
+            ],
+            "returnPaths": [
+              {
+                "order": 1,
+                "condition": null,
+                "conditionSummary": null,
+                "valueKind": "expression",
+                "valueText": "new JObject(new JProperty(\u0022error\u0022, context.LastError.Message)).ToString()"
+              }
+            ],
+            "hasLocalCatch": false,
+            "catchFallback": null,
+            "keyPrefix": null,
+            "diagnostics": []
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "text()",
+          "value": "@{\n  return new JObject(new JProperty(\u0022error\u0022, context.LastError.Message)).ToString();\n}",
+          "isExpression": true
+        }
+      ],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "text(): 1 ordered return path(s) yield the value used by this policy; a C# return is expression-local, not a pipeline response.",
+          "provenance": "inferred",
+          "ruleId": null
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "terminal:explicit-response",
+      "kind": "terminal",
+      "stage": null,
+      "parentId": null,
+      "order": 6,
+      "label": "Explicit response to caller",
+      "labelProvenance": "structural",
+      "tag": null,
+      "category": "response",
+      "observability": false,
+      "fragment": null,
+      "span": null,
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "return-response ends the pipeline immediately and returns the response to the caller; later policies and stages do not run and On-error is not entered.",
+          "provenance": "apim-rule",
+          "ruleId": "return-response.terminates"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "terminal:final-response",
+      "kind": "terminal",
+      "stage": null,
+      "parentId": null,
+      "order": 7,
+      "label": "Final backend response to caller",
+      "labelProvenance": "structural",
+      "tag": null,
+      "category": "response",
+      "observability": false,
+      "fragment": null,
+      "span": null,
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "After Outbound the final backend response (including HTTP error statuses) is returned to the caller.",
+          "provenance": "apim-rule",
+          "ruleId": "outbound.final-response"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "terminal:error-response",
+      "kind": "terminal",
+      "stage": null,
+      "parentId": null,
+      "order": 8,
+      "label": "Error response to caller",
+      "labelProvenance": "structural",
+      "tag": null,
+      "category": "response",
+      "observability": false,
+      "fragment": null,
+      "span": null,
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "On-error never resumes Outbound; when it ends without return-response, the error response is returned to the caller.",
+          "provenance": "apim-rule",
+          "ruleId": "on-error.no-resume"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    },
+    {
+      "id": "terminal:preflight-response",
+      "kind": "terminal",
+      "stage": null,
+      "parentId": null,
+      "order": 9,
+      "label": "Preflight response to caller",
+      "labelProvenance": "structural",
+      "tag": null,
+      "category": "response",
+      "observability": false,
+      "fragment": null,
+      "span": null,
+      "attributes": [],
+      "expressions": [],
+      "properties": [],
+      "comment": null,
+      "badges": [],
+      "facts": [
+        {
+          "text": "When cors is present and no explicitly defined OPTIONS operation matches, APIM answers preflight requests at the cors policy; a matching OPTIONS operation disables this handling.",
+          "provenance": "apim-rule",
+          "ruleId": "cors.preflight"
+        }
+      ],
+      "exits": {
+        "explicitResponseCodes": [],
+        "raisesError": false
+      },
+      "variablesRead": [],
+      "variablesWritten": []
+    }
+  ],
+  "edges": [
+    {
+      "id": "e:inbound/0-\u003Einbound/fragment:cors-policy#1/0:sequence",
+      "from": "inbound/0",
+      "to": "inbound/fragment:cors-policy#1/0",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:subscription-guard#1/0/when1/0-\u003Eterminal:explicit-response:explicit-response",
+      "from": "inbound/fragment:subscription-guard#1/0/when1/0",
+      "to": "terminal:explicit-response",
+      "kind": "explicit-response",
+      "label": "401",
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:subscription-guard#1/0/decision-\u003Einbound/fragment:subscription-guard#1/0/when1/0:branch:1",
+      "from": "inbound/fragment:subscription-guard#1/0/decision",
+      "to": "inbound/fragment:subscription-guard#1/0/when1/0",
+      "kind": "branch",
+      "label": "Subscription is null",
+      "priority": 1,
+      "condition": {
+        "text": "@(context.Subscription == null)",
+        "summary": "Subscription is null",
+        "provenance": "inferred"
+      },
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:subscription-guard#1/0/decision-\u003Einbound/fragment:subscription-guard#1/0/merge:no-match",
+      "from": "inbound/fragment:subscription-guard#1/0/decision",
+      "to": "inbound/fragment:subscription-guard#1/0/merge",
+      "kind": "no-match",
+      "label": "no match: continue",
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:cors-policy#1/0-\u003Einbound/fragment:subscription-guard#1/0/decision:sequence",
+      "from": "inbound/fragment:cors-policy#1/0",
+      "to": "inbound/fragment:subscription-guard#1/0/decision",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:caller-authentication#1/0-\u003Eentry:on-error:raises-error",
+      "from": "inbound/fragment:caller-authentication#1/0",
+      "to": "entry:on-error",
+      "kind": "raises-error",
+      "label": "token validation failed",
+      "priority": null,
+      "condition": null,
+      "facts": [
+        {
+          "text": "A failed validate-jwt check raises an error (handled by On-error, not an explicit response).",
+          "provenance": "apim-rule",
+          "ruleId": "validate-jwt.raises-on-failure"
+        }
+      ]
+    },
+    {
+      "id": "e:inbound/fragment:subscription-guard#1/0/merge-\u003Einbound/fragment:caller-authentication#1/0:sequence",
+      "from": "inbound/fragment:subscription-guard#1/0/merge",
+      "to": "inbound/fragment:caller-authentication#1/0",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:caller-authentication#1/0-\u003Einbound/fragment:model-resolution#1/0:sequence",
+      "from": "inbound/fragment:caller-authentication#1/0",
+      "to": "inbound/fragment:model-resolution#1/0",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:model-allowlist#1/0/when1/0-\u003Eterminal:explicit-response:explicit-response",
+      "from": "inbound/fragment:model-allowlist#1/0/when1/0",
+      "to": "terminal:explicit-response",
+      "kind": "explicit-response",
+      "label": "400",
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:model-allowlist#1/0/decision-\u003Einbound/fragment:model-allowlist#1/0/when1/0:branch:1",
+      "from": "inbound/fragment:model-allowlist#1/0/decision",
+      "to": "inbound/fragment:model-allowlist#1/0/when1/0",
+      "kind": "branch",
+      "label": "variable requestedModel is empty",
+      "priority": 1,
+      "condition": {
+        "text": "@(string.IsNullOrEmpty((string)context.Variables[\u0022requestedModel\u0022]))",
+        "summary": "variable requestedModel is empty",
+        "provenance": "inferred"
+      },
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:model-allowlist#1/0/when2/0-\u003Eterminal:explicit-response:explicit-response",
+      "from": "inbound/fragment:model-allowlist#1/0/when2/0",
+      "to": "terminal:explicit-response",
+      "kind": "explicit-response",
+      "label": "404",
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:model-allowlist#1/0/decision-\u003Einbound/fragment:model-allowlist#1/0/when2/0:branch:2",
+      "from": "inbound/fragment:model-allowlist#1/0/decision",
+      "to": "inbound/fragment:model-allowlist#1/0/when2/0",
+      "kind": "branch",
+      "label": "{{allowed-models}} does not contain variable requestedModel",
+      "priority": 2,
+      "condition": {
+        "text": "@(!\u0022{{allowed-models}}\u0022.Contains((string)context.Variables[\u0022requestedModel\u0022]))",
+        "summary": "{{allowed-models}} does not contain variable requestedModel",
+        "provenance": "inferred"
+      },
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:model-allowlist#1/0/decision-\u003Einbound/fragment:model-allowlist#1/0/merge:no-match",
+      "from": "inbound/fragment:model-allowlist#1/0/decision",
+      "to": "inbound/fragment:model-allowlist#1/0/merge",
+      "kind": "no-match",
+      "label": "no match: continue",
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:model-resolution#1/0-\u003Einbound/fragment:model-allowlist#1/0/decision:sequence",
+      "from": "inbound/fragment:model-resolution#1/0",
+      "to": "inbound/fragment:model-allowlist#1/0/decision",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:maintenance-gate#1/0/when1/0-\u003Eterminal:explicit-response:explicit-response",
+      "from": "inbound/fragment:maintenance-gate#1/0/when1/0",
+      "to": "terminal:explicit-response",
+      "kind": "explicit-response",
+      "label": "503",
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:maintenance-gate#1/0/decision-\u003Einbound/fragment:maintenance-gate#1/0/when1/0:branch:1",
+      "from": "inbound/fragment:maintenance-gate#1/0/decision",
+      "to": "inbound/fragment:maintenance-gate#1/0/when1/0",
+      "kind": "branch",
+      "label": "variable maintenanceMode",
+      "priority": 1,
+      "condition": {
+        "text": "@(context.Variables.GetValueOrDefault\u003Cbool\u003E(\u0022maintenanceMode\u0022, false))",
+        "summary": "variable maintenanceMode",
+        "provenance": "inferred"
+      },
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:maintenance-gate#1/0/decision-\u003Einbound/fragment:maintenance-gate#1/0/merge:no-match",
+      "from": "inbound/fragment:maintenance-gate#1/0/decision",
+      "to": "inbound/fragment:maintenance-gate#1/0/merge",
+      "kind": "no-match",
+      "label": "no match: continue",
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:model-allowlist#1/0/merge-\u003Einbound/fragment:maintenance-gate#1/0/decision:sequence",
+      "from": "inbound/fragment:model-allowlist#1/0/merge",
+      "to": "inbound/fragment:maintenance-gate#1/0/decision",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:responses-ownership#1/1/when1/0-\u003Eterminal:explicit-response:explicit-response",
+      "from": "inbound/fragment:responses-ownership#1/1/when1/0",
+      "to": "terminal:explicit-response",
+      "kind": "explicit-response",
+      "label": "403",
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:responses-ownership#1/1/decision-\u003Einbound/fragment:responses-ownership#1/1/when1/0:branch:1",
+      "from": "inbound/fragment:responses-ownership#1/1/decision",
+      "to": "inbound/fragment:responses-ownership#1/1/when1/0",
+      "kind": "branch",
+      "label": "variable responseOwner is set AND variable responseOwner !=\u2026",
+      "priority": 1,
+      "condition": {
+        "text": "@(context.Variables.ContainsKey(\u0022responseOwner\u0022) \u0026\u0026 (string)context.Variables[\u0022responseOwner\u0022] != context.Subscription.Id)",
+        "summary": "variable responseOwner is set AND variable responseOwner != Subscription id",
+        "provenance": "inferred"
+      },
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:responses-ownership#1/1/decision-\u003Einbound/fragment:responses-ownership#1/1/merge:no-match",
+      "from": "inbound/fragment:responses-ownership#1/1/decision",
+      "to": "inbound/fragment:responses-ownership#1/1/merge",
+      "kind": "no-match",
+      "label": "no match: continue",
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:responses-ownership#1/0-\u003Einbound/fragment:responses-ownership#1/1/decision:sequence",
+      "from": "inbound/fragment:responses-ownership#1/0",
+      "to": "inbound/fragment:responses-ownership#1/1/decision",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:maintenance-gate#1/0/merge-\u003Einbound/fragment:responses-ownership#1/0:sequence",
+      "from": "inbound/fragment:maintenance-gate#1/0/merge",
+      "to": "inbound/fragment:responses-ownership#1/0",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:token-budget#1/0-\u003Eentry:on-error:raises-error",
+      "from": "inbound/fragment:token-budget#1/0",
+      "to": "entry:on-error",
+      "kind": "raises-error",
+      "label": "token limit exceeded",
+      "priority": null,
+      "condition": null,
+      "facts": [
+        {
+          "text": "A failed llm-token-limit check raises an error (handled by On-error, not an explicit response).",
+          "provenance": "apim-rule",
+          "ruleId": "llm-token-limit.raises-on-failure"
+        }
+      ]
+    },
+    {
+      "id": "e:inbound/fragment:responses-ownership#1/1/merge-\u003Einbound/fragment:token-budget#1/0:sequence",
+      "from": "inbound/fragment:responses-ownership#1/1/merge",
+      "to": "inbound/fragment:token-budget#1/0",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:backend-routing#1/1/decision-\u003Einbound/fragment:backend-routing#1/1/when1/0:branch:1",
+      "from": "inbound/fragment:backend-routing#1/1/decision",
+      "to": "inbound/fragment:backend-routing#1/1/when1/0",
+      "kind": "branch",
+      "label": "variable requestedModel starts with \u0022gpt-\u0022",
+      "priority": 1,
+      "condition": {
+        "text": "@(((string)context.Variables[\u0022requestedModel\u0022]).StartsWith(\u0022gpt-\u0022))",
+        "summary": "variable requestedModel starts with \u0022gpt-\u0022",
+        "provenance": "inferred"
+      },
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:backend-routing#1/1/decision-\u003Einbound/fragment:backend-routing#1/1/otherwise/0:otherwise",
+      "from": "inbound/fragment:backend-routing#1/1/decision",
+      "to": "inbound/fragment:backend-routing#1/1/otherwise/0",
+      "kind": "otherwise",
+      "label": "otherwise",
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:backend-routing#1/1/when1/0-\u003Einbound/fragment:backend-routing#1/1/merge:merge",
+      "from": "inbound/fragment:backend-routing#1/1/when1/0",
+      "to": "inbound/fragment:backend-routing#1/1/merge",
+      "kind": "merge",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:backend-routing#1/1/decision-\u003Einbound/fragment:backend-routing#1/1/merge:bypass:2",
+      "from": "inbound/fragment:backend-routing#1/1/decision",
+      "to": "inbound/fragment:backend-routing#1/1/merge",
+      "kind": "bypass",
+      "label": "variable backendPool = \u0022pool-b\u0022 (empty branch)",
+      "priority": 2,
+      "condition": {
+        "text": "@((string)context.Variables[\u0022backendPool\u0022] == \u0022pool-b\u0022)",
+        "summary": "variable backendPool = \u0022pool-b\u0022",
+        "provenance": "inferred"
+      },
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:backend-routing#1/1/otherwise/0-\u003Einbound/fragment:backend-routing#1/1/merge:merge",
+      "from": "inbound/fragment:backend-routing#1/1/otherwise/0",
+      "to": "inbound/fragment:backend-routing#1/1/merge",
+      "kind": "merge",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:backend-routing#1/0-\u003Einbound/fragment:backend-routing#1/1/decision:sequence",
+      "from": "inbound/fragment:backend-routing#1/0",
+      "to": "inbound/fragment:backend-routing#1/1/decision",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:token-budget#1/0-\u003Einbound/fragment:backend-routing#1/0:sequence",
+      "from": "inbound/fragment:token-budget#1/0",
+      "to": "inbound/fragment:backend-routing#1/0",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:request-headers#1/1/decision-\u003Einbound/fragment:request-headers#1/1/when1/0:branch:1",
+      "from": "inbound/fragment:request-headers#1/1/decision",
+      "to": "inbound/fragment:request-headers#1/1/when1/0",
+      "kind": "branch",
+      "label": "Request method = \u0022POST\u0022",
+      "priority": 1,
+      "condition": {
+        "text": "@(context.Request.Method == \u0022POST\u0022)",
+        "summary": "Request method = \u0022POST\u0022",
+        "provenance": "inferred"
+      },
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:request-headers#1/1/when1/0-\u003Einbound/fragment:request-headers#1/1/merge:merge",
+      "from": "inbound/fragment:request-headers#1/1/when1/0",
+      "to": "inbound/fragment:request-headers#1/1/merge",
+      "kind": "merge",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:request-headers#1/1/decision-\u003Einbound/fragment:request-headers#1/1/merge:no-match",
+      "from": "inbound/fragment:request-headers#1/1/decision",
+      "to": "inbound/fragment:request-headers#1/1/merge",
+      "kind": "no-match",
+      "label": "no match: continue",
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:request-headers#1/fragment:correlation-id#1/0-\u003Einbound/fragment:request-headers#1/1/decision:sequence",
+      "from": "inbound/fragment:request-headers#1/fragment:correlation-id#1/0",
+      "to": "inbound/fragment:request-headers#1/1/decision",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:request-headers#1/1/merge-\u003Einbound/fragment:request-headers#1/2:sequence",
+      "from": "inbound/fragment:request-headers#1/1/merge",
+      "to": "inbound/fragment:request-headers#1/2",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:backend-routing#1/1/merge-\u003Einbound/fragment:request-headers#1/fragment:correlation-id#1/0:sequence",
+      "from": "inbound/fragment:backend-routing#1/1/merge",
+      "to": "inbound/fragment:request-headers#1/fragment:correlation-id#1/0",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:inbound/fragment:request-headers#1/2-\u003Einbound/11:sequence",
+      "from": "inbound/fragment:request-headers#1/2",
+      "to": "inbound/11",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:entry:request-\u003Einbound/0:sequence",
+      "from": "entry:request",
+      "to": "inbound/0",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:backend/0/fragment:backend-attempt-log#1/0-\u003Ebackend/0/fragment:backend-attempt-log#1/1:sequence",
+      "from": "backend/0/fragment:backend-attempt-log#1/0",
+      "to": "backend/0/fragment:backend-attempt-log#1/1",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:backend/0/fragment:backend-auth#1/0-\u003Ebackend/0/fragment:backend-attempt-log#1/0:sequence",
+      "from": "backend/0/fragment:backend-auth#1/0",
+      "to": "backend/0/fragment:backend-attempt-log#1/0",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:backend/0/2-\u003Eentry:on-error:raises-error",
+      "from": "backend/0/2",
+      "to": "entry:on-error",
+      "kind": "raises-error",
+      "label": "transport failure (timeout, connection)",
+      "priority": null,
+      "condition": null,
+      "facts": [
+        {
+          "text": "Transport failures (timeout, connection errors) raise an error.",
+          "provenance": "apim-rule",
+          "ruleId": "forward-request.transport-failure"
+        }
+      ]
+    },
+    {
+      "id": "e:backend/0/fragment:backend-attempt-log#1/1-\u003Ebackend/0/2:sequence",
+      "from": "backend/0/fragment:backend-attempt-log#1/1",
+      "to": "backend/0/2",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:backend/0/2-\u003Ebackend/0/test:sequence",
+      "from": "backend/0/2",
+      "to": "backend/0/test",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:backend/0/test-\u003Ebackend/0/fragment:backend-auth#1/0:loop-back",
+      "from": "backend/0/test",
+      "to": "backend/0/fragment:backend-auth#1/0",
+      "kind": "loop-back",
+      "label": "retry: condition true and budget remains",
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:inbound/11-\u003Ebackend/0/fragment:backend-auth#1/0:sequence",
+      "from": "inbound/11",
+      "to": "backend/0/fragment:backend-auth#1/0",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:outbound/0-\u003Eoutbound/fragment:response-cache-store#1/0:sequence",
+      "from": "outbound/0",
+      "to": "outbound/fragment:response-cache-store#1/0",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:outbound/fragment:set-response-headers#1/0-\u003Eoutbound/fragment:set-response-headers#1/1:sequence",
+      "from": "outbound/fragment:set-response-headers#1/0",
+      "to": "outbound/fragment:set-response-headers#1/1",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:outbound/fragment:response-cache-store#1/0-\u003Eoutbound/fragment:set-response-headers#1/0:sequence",
+      "from": "outbound/fragment:response-cache-store#1/0",
+      "to": "outbound/fragment:set-response-headers#1/0",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:backend/0/test-\u003Eoutbound/0:loop-exit",
+      "from": "backend/0/test",
+      "to": "outbound/0",
+      "kind": "loop-exit",
+      "label": "retry finished",
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:outbound/fragment:set-response-headers#1/1-\u003Eterminal:final-response:sequence",
+      "from": "outbound/fragment:set-response-headers#1/1",
+      "to": "terminal:final-response",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:stage:inbound-\u003Eentry:on-error:stage-exception",
+      "from": "stage:inbound",
+      "to": "entry:on-error",
+      "kind": "stage-exception",
+      "label": "unhandled execution failure",
+      "priority": null,
+      "condition": null,
+      "facts": [
+        {
+          "text": "An unhandled execution failure in Inbound, Backend or Outbound transfers control to On-error (or to the gateway default error response when there is no on-error section).",
+          "provenance": "apim-rule",
+          "ruleId": "stage.exception"
+        }
+      ]
+    },
+    {
+      "id": "e:stage:backend-\u003Eentry:on-error:stage-exception",
+      "from": "stage:backend",
+      "to": "entry:on-error",
+      "kind": "stage-exception",
+      "label": "unhandled execution failure",
+      "priority": null,
+      "condition": null,
+      "facts": [
+        {
+          "text": "An unhandled execution failure in Inbound, Backend or Outbound transfers control to On-error (or to the gateway default error response when there is no on-error section).",
+          "provenance": "apim-rule",
+          "ruleId": "stage.exception"
+        }
+      ]
+    },
+    {
+      "id": "e:stage:outbound-\u003Eentry:on-error:stage-exception",
+      "from": "stage:outbound",
+      "to": "entry:on-error",
+      "kind": "stage-exception",
+      "label": "unhandled execution failure",
+      "priority": null,
+      "condition": null,
+      "facts": [
+        {
+          "text": "An unhandled execution failure in Inbound, Backend or Outbound transfers control to On-error (or to the gateway default error response when there is no on-error section).",
+          "provenance": "apim-rule",
+          "ruleId": "stage.exception"
+        }
+      ]
+    },
+    {
+      "id": "e:on-error/fragment:set-response-headers#2/0-\u003Eon-error/fragment:set-response-headers#2/1:sequence",
+      "from": "on-error/fragment:set-response-headers#2/0",
+      "to": "on-error/fragment:set-response-headers#2/1",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:on-error/0-\u003Eon-error/fragment:set-response-headers#2/0:sequence",
+      "from": "on-error/0",
+      "to": "on-error/fragment:set-response-headers#2/0",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:on-error/fragment:error-shaping#1/0/when1/0-\u003Eon-error/fragment:error-shaping#1/0/when1/1:sequence",
+      "from": "on-error/fragment:error-shaping#1/0/when1/0",
+      "to": "on-error/fragment:error-shaping#1/0/when1/1",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:on-error/fragment:error-shaping#1/0/decision-\u003Eon-error/fragment:error-shaping#1/0/when1/0:branch:1",
+      "from": "on-error/fragment:error-shaping#1/0/decision",
+      "to": "on-error/fragment:error-shaping#1/0/when1/0",
+      "kind": "branch",
+      "label": "Response status = 429",
+      "priority": 1,
+      "condition": {
+        "text": "@(context.Response.StatusCode == 429)",
+        "summary": "Response status = 429",
+        "provenance": "inferred"
+      },
+      "facts": null
+    },
+    {
+      "id": "e:on-error/fragment:error-shaping#1/0/when2/0-\u003Eterminal:explicit-response:explicit-response",
+      "from": "on-error/fragment:error-shaping#1/0/when2/0",
+      "to": "terminal:explicit-response",
+      "kind": "explicit-response",
+      "label": "500",
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:on-error/fragment:error-shaping#1/0/decision-\u003Eon-error/fragment:error-shaping#1/0/when2/0:branch:2",
+      "from": "on-error/fragment:error-shaping#1/0/decision",
+      "to": "on-error/fragment:error-shaping#1/0/when2/0",
+      "kind": "branch",
+      "label": "LastError reason = \u0022BackendConnectionFailure\u0022",
+      "priority": 2,
+      "condition": {
+        "text": "@(context.LastError.Reason == \u0022BackendConnectionFailure\u0022)",
+        "summary": "LastError reason = \u0022BackendConnectionFailure\u0022",
+        "provenance": "inferred"
+      },
+      "facts": null
+    },
+    {
+      "id": "e:on-error/fragment:error-shaping#1/0/when1/1-\u003Eon-error/fragment:error-shaping#1/0/merge:merge",
+      "from": "on-error/fragment:error-shaping#1/0/when1/1",
+      "to": "on-error/fragment:error-shaping#1/0/merge",
+      "kind": "merge",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:on-error/fragment:error-shaping#1/0/decision-\u003Eon-error/fragment:error-shaping#1/0/merge:no-match",
+      "from": "on-error/fragment:error-shaping#1/0/decision",
+      "to": "on-error/fragment:error-shaping#1/0/merge",
+      "kind": "no-match",
+      "label": "no match: continue",
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:on-error/fragment:error-shaping#1/0/merge-\u003Eon-error/fragment:error-shaping#1/1:sequence",
+      "from": "on-error/fragment:error-shaping#1/0/merge",
+      "to": "on-error/fragment:error-shaping#1/1",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:on-error/fragment:set-response-headers#2/1-\u003Eon-error/fragment:error-shaping#1/0/decision:sequence",
+      "from": "on-error/fragment:set-response-headers#2/1",
+      "to": "on-error/fragment:error-shaping#1/0/decision",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:entry:on-error-\u003Eon-error/0:sequence",
+      "from": "entry:on-error",
+      "to": "on-error/0",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:on-error/fragment:error-shaping#1/1-\u003Eterminal:error-response:sequence",
+      "from": "on-error/fragment:error-shaping#1/1",
+      "to": "terminal:error-response",
+      "kind": "sequence",
+      "label": null,
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:entry:preflight-\u003Einbound/fragment:cors-policy#1/0:preflight",
+      "from": "entry:preflight",
+      "to": "inbound/fragment:cors-policy#1/0",
+      "kind": "preflight",
+      "label": "preflight request",
+      "priority": null,
+      "condition": null,
+      "facts": [
+        {
+          "text": "When cors is present and no explicitly defined OPTIONS operation matches, APIM answers preflight requests at the cors policy; a matching OPTIONS operation disables this handling.",
+          "provenance": "apim-rule",
+          "ruleId": "cors.preflight"
+        }
+      ]
+    },
+    {
+      "id": "e:inbound/fragment:cors-policy#1/0-\u003Eterminal:preflight-response:preflight",
+      "from": "inbound/fragment:cors-policy#1/0",
+      "to": "terminal:preflight-response",
+      "kind": "preflight",
+      "label": "preflight response",
+      "priority": null,
+      "condition": null,
+      "facts": null
+    },
+    {
+      "id": "e:outbound/fragment:response-cache-store#1/0-\u003Einbound/fragment:responses-ownership#1/0:data-dependency",
+      "from": "outbound/fragment:response-cache-store#1/0",
+      "to": "inbound/fragment:responses-ownership#1/0",
+      "kind": "data-dependency",
+      "label": "affects subsequent requests",
+      "priority": null,
+      "condition": null,
+      "facts": [
+        {
+          "text": "Values stored here (caching-type internal, key prefix \u0022responses-owner-\u0022) can be read by this lookup in subsequent requests; this is not control flow.",
+          "provenance": "inferred",
+          "ruleId": null
+        }
+      ]
+    }
+  ],
+  "variables": [
+    {
+      "name": "attempt",
+      "writers": [
+        {
+          "elementId": "backend/0/fragment:backend-attempt-log#1/0",
+          "literal": false,
+          "dependencyClasses": []
+        }
+      ],
+      "readers": [
+        "backend/0/fragment:backend-attempt-log#1/0"
+      ],
+      "dependencyClasses": []
+    },
+    {
+      "name": "auditResponse",
+      "writers": [
+        {
+          "elementId": "inbound/fragment:request-headers#1/1/when1/0",
+          "literal": false,
+          "dependencyClasses": [
+            "runtime"
+          ]
+        }
+      ],
+      "readers": [],
+      "dependencyClasses": [
+        "runtime"
+      ]
+    },
+    {
+      "name": "backendPool",
+      "writers": [
+        {
+          "elementId": "inbound/fragment:backend-routing#1/0",
+          "literal": false,
+          "dependencyClasses": [
+            "configuration"
+          ]
+        }
+      ],
+      "readers": [
+        "inbound/fragment:backend-routing#1/1/decision",
+        "inbound/fragment:backend-routing#1/1/when1/0"
+      ],
+      "dependencyClasses": [
+        "configuration"
+      ]
+    },
+    {
+      "name": "backendToken",
+      "writers": [
+        {
+          "elementId": "backend/0/fragment:backend-auth#1/0",
+          "literal": false,
+          "dependencyClasses": [
+            "runtime"
+          ]
+        }
+      ],
+      "readers": [],
+      "dependencyClasses": [
+        "runtime"
+      ]
+    },
+    {
+      "name": "callerToken",
+      "writers": [
+        {
+          "elementId": "inbound/fragment:caller-authentication#1/0",
+          "literal": false,
+          "dependencyClasses": [
+            "runtime"
+          ]
+        }
+      ],
+      "readers": [],
+      "dependencyClasses": [
+        "runtime"
+      ]
+    },
+    {
+      "name": "maintenanceMode",
+      "writers": [],
+      "readers": [
+        "inbound/fragment:maintenance-gate#1/0/decision"
+      ],
+      "dependencyClasses": [
+        "configuration"
+      ]
+    },
+    {
+      "name": "remainingTokens",
+      "writers": [
+        {
+          "elementId": "inbound/fragment:token-budget#1/0",
+          "literal": false,
+          "dependencyClasses": [
+            "runtime"
+          ]
+        }
+      ],
+      "readers": [],
+      "dependencyClasses": [
+        "runtime"
+      ]
+    },
+    {
+      "name": "requestedModel",
+      "writers": [
+        {
+          "elementId": "inbound/fragment:model-resolution#1/0",
+          "literal": false,
+          "dependencyClasses": [
+            "runtime"
+          ]
+        }
+      ],
+      "readers": [
+        "inbound/fragment:model-allowlist#1/0/decision",
+        "inbound/fragment:backend-routing#1/1/decision"
+      ],
+      "dependencyClasses": [
+        "runtime"
+      ]
+    },
+    {
+      "name": "responseOwner",
+      "writers": [
+        {
+          "elementId": "inbound/fragment:responses-ownership#1/0",
+          "literal": false,
+          "dependencyClasses": [
+            "runtime"
+          ]
+        }
+      ],
+      "readers": [
+        "inbound/fragment:responses-ownership#1/1/decision"
+      ],
+      "dependencyClasses": [
+        "runtime"
+      ]
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "code": "unresolved-control-effect",
+      "message": "\u003Cexample-telemetry-probe\u003E is not a recognised policy; its effect on control flow is not modelled. It is shown as an opaque step.",
+      "span": {
+        "startLine": 130,
+        "startColumn": 3,
+        "endLine": 130,
+        "endColumn": 42
+      },
+      "elementId": "inbound/11"
+    }
+  ]
+}

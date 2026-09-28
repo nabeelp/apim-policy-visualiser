@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "candidates": [
+    {
+      "name": "azure-arm-authenticated-client",
+      "description": "Repeatable pattern for acquiring and caching DefaultAzureCredential ARM bearer tokens, pinning an explicit api-version, and mapping ARM 404/403 responses to descriptive typed results.",
+      "consumers": [
+        "apim-connectivity-engineer",
+        "policy-parsing-engineer"
+      ],
+      "action": "create",
+      "reason": "The same token-acquisition/caching, credential-never-logged, and 404->NotFound/403->Forbidden mapping rules are required identically by ArmTokenProvider (APIM-2) and EffectivePolicyClient (POL-1); codifying it once avoids drift between the two implementations."
+    },
+    {
+      "name": "axe-core-accessibility-scan",
+      "description": "Automated axe-core accessibility scanning of the scope-selection and diagram views asserting zero serious/critical violations.",
+      "consumers": [
+        "frontend-visualization-engineer"
+      ],
+      "action": "omit",
+      "reason": "This is a single, well-documented library integration used by one agent in one task (UI-4) with no cross-agent repetition or project-specific fragility beyond following axe-core's standard test API; a dedicated skill package is not justified."
+    },
+    {
+      "name": "policy-xml-flow-graph-modeling",
+      "description": "Convert APIM effective-policy XML into a source-mapped, fragment-grouped, APIM-semantics-aware hierarchical execution model (decisions with merge/no-match, terminals, retry loops, stage exception lanes) without compiling or evaluating policy expressions.",
+      "consumers": [
+        "policy-parsing-engineer"
+      ],
+      "action": "extend",
+      "reason": "SPF-1..SPF-7 replace the legacy linear/control-flow parsers with a new pipeline (PolicySourceLoader, FragmentRegionBuilder, PolicyFlowModelBuilder, ApimSemanticRules, PolicyStateAnalyzer); the package must be rewritten for the schemaVersion 2 model, predicate-based APIM rule table and fragment-marker conventions, keeping the never-evaluate and never-drop-unknown rules."
+    },
+    {
+      "name": "apim-display-text-lenient-parsing",
+      "description": "Tokenize APIM's lenient display-text policy representation, distinguishing XML tags/comments from embedded C# expression bodies and string literals, without a regular-expression replacement.",
+      "consumers": [
+        "policy-parsing-engineer"
+      ],
+      "action": "omit",
+      "reason": "Retired: the replacement feature (Semantic Policy Flow Visualization) supports only live ARM format=xml input, so no lenient display-text scanner is built; the existing package is obsolete and should be removed."
+    },
+    {
+      "name": "sanitized-diagram-export",
+      "description": "Produce sanitized, inert SVG/JSON exports of the policy flow diagram that redact secrets and customer-specific content by default and contain no active content or remote references.",
+      "consumers": [
+        "frontend-visualization-engineer"
+      ],
+      "action": "omit",
+      "reason": "Retired: SVG/JSON export is explicitly out of scope of the replacement feature (Semantic Policy Flow Visualization); the existing package is obsolete and should be removed."
+    },
+    {
+      "name": "progressive-disclosure-port-preservation",
+      "description": "Project a hierarchical flow model into a visible graph for any expand/collapse state as a quotient graph that lifts edges to collapsed ancestors while preserving every outcome kind and payload, verified by property tests.",
+      "consumers": [
+        "frontend-visualization-engineer"
+      ],
+      "action": "create",
+      "reason": "SPF-8 projection is fragile and central: subtle lifting/deduplication mistakes silently merge or drop explicit-response, raises-error, loop and branch-priority outcomes, and every later UI task (SPF-11..SPF-14) depends on it; codified invariants and property-test recipe prevent regressions."
+    },
+    {
+      "name": "roslyn-syntax-only-expression-analysis",
+      "description": "Analyse APIM @(...)/@{...} policy expressions with Roslyn syntax trees only to extract variable reads, return paths, catches and condition summaries, labelling results inferred and never compiling or executing code.",
+      "consumers": [
+        "policy-parsing-engineer"
+      ],
+      "action": "create",
+      "reason": "SPF-3 introduces Roslyn with a security boundary (VIS-SEC-03 amended): it is easy to drift into CSharpCompilation/SemanticModel usage or to misrepresent a C# return as pipeline termination; the allowed API surface, APIM expression wrapping and opaque-fallback rules need a single codified procedure."
+    },
+    {
+      "name": "elk-compound-lane-layout",
+      "description": "Lay out a React Flow graph with bundled elkjs as independent compound lanes placed into a deterministic Inbound-Backend-Outbound column grid with a spanning On-error lane underneath.",
+      "consumers": [
+        "frontend-visualization-engineer"
+      ],
+      "action": "create",
+      "reason": "SPF-9 layout has non-obvious constraints (a single ELK run cannot express the spanning lane, port assignment for collapsed outcomes, determinism, jsdom having no layout) that recur on every expand/collapse and are easy to regress."
+    }
+  ]
+}

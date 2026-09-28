@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="..\..\ApimPolicyVisualizer.Api.Tests\Fixtures\ai-gateway-synthetic.xml" Link="Fixtures\ai-gateway-synthetic.xml" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\server\ApimPolicyVisualizer.Api\ApimPolicyVisualizer.Api.csproj" />
+  </ItemGroup>
+</Project>

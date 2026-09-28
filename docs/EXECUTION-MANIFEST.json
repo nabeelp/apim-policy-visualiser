@@ -1,0 +1,660 @@
+{
+  "version": "1.0",
+  "generatedAt": "2026-09-24T12:06:17.986Z",
+  "granularity": "fine",
+  "sourceLayout": "features",
+  "repoRoot": "C:\\repos\\nabeelp\\ai-playground",
+  "harnessRoot": ".github",
+  "prdPath": "C:\\repos\\nabeelp\\ai-playground\\docs\\PRD.md",
+  "visionPath": "C:\\repos\\nabeelp\\ai-playground\\docs\\PRD.md",
+  "featureOrder": [
+    "Azure APIM Connectivity and Scope Discovery",
+    "Effective Policy Retrieval and Flow Graph Model",
+    "Policy Flow Visualization Web UI"
+  ],
+  "progressPath": "C:\\repos\\nabeelp\\ai-playground\\docs\\PROGRESS.md",
+  "auditPath": "C:\\repos\\nabeelp\\ai-playground\\docs\\EXECUTION-AUDIT.jsonl",
+  "validationCommands": [
+    "npm package.\r\n\r\n### 12.2 Risks\r\n- **Ambiguous subscription/resource-group resolution**: if the configured\r\n  service name exists in multiple subscriptions visible to the user,\r\n  automatic resolution could pick the wrong one. Mitigated by allowing\r\n  explicit"
+  ],
+  "approvalGates": {
+    "preflight": true,
+    "betweenPhases": true
+  },
+  "phases": [
+    {
+      "id": "AZURE-APIM-CONNECTIVITY-AND-SCOPE-DISCOVERY-1",
+      "title": "Phase 1: Backend Foundation and Scope Discovery",
+      "feature": "Azure APIM Connectivity and Scope Discovery",
+      "description": "```forge-task {   \"id\": \"APIM-1\",",
+      "ownerAgents": [
+        "apim-connectivity-engineer"
+      ],
+      "dependencies": [],
+      "approvalRequired": false,
+      "tasks": [
+        {
+          "id": "APIM-1",
+          "title": "Scaffold ASP.NET Core Web API host with APIM configuration",
+          "description": "Create the ApimPolicyVisualizer.Api ASP.NET Core Web API project targeting .NET 10, with a strongly-typed ApimOptions configuration section (subscriptionId, resourceGroupName, serviceName) bound from appsettings.json, serviceName defaulting to \"apim-zlyway6g7icoy\" when unset. Add a GET /healthz endpoint returning 200 with the resolved (non-secret) configuration summary. Create the xUnit test project and its first test verifying /healthz returns 200 and the default serviceName. Out of scope: Azure authentication and scope discovery (later tasks).",
+          "ownerAgent": "apim-connectivity-engineer",
+          "dependencies": [],
+          "expectedOutputs": [
+            "src/server/ApimPolicyVisualizer.Api/ApimPolicyVisualizer.Api.csproj",
+            "src/server/ApimPolicyVisualizer.Api/Program.cs",
+            "src/server/ApimPolicyVisualizer.Api/appsettings.json",
+            "src/server/ApimPolicyVisualizer.Api/Configuration/ApimOptions.cs",
+            "tests/ApimPolicyVisualizer.Api.Tests/ApimPolicyVisualizer.Api.Tests.csproj",
+            "tests/ApimPolicyVisualizer.Api.Tests/HealthEndpointTests.cs"
+          ],
+          "validationCommands": [
+            "dotnet test tests/ApimPolicyVisualizer.Api.Tests/ApimPolicyVisualizer.Api.Tests.csproj --filter FullyQualifiedName~HealthEndpointTests"
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "APIM-FR-02: The backend resolves the target APIM service from configuration (subscriptionId, resourceGroupName, serviceName), defaulting serviceName to \"apim-zlyway6g7icoy\"; when subscriptionId/resourceGroupName are not explicitly configured, it resolves them via an Azure Resource Graph query scoped to subscriptions visible to the current credential, matching by service name, and returns a clear 4xx error describing the failure if the service cannot be found or the caller lacks read permission."
+            ],
+            "acceptanceCriteria": [
+              "GET /healthz returns HTTP 200",
+              "Default serviceName resolves to apim-zlyway6g7icoy when not configured",
+              "dotnet test discovers and runs at least one HealthEndpointTests test and fails the build if zero tests are selected"
+            ],
+            "constraints": [],
+            "references": [
+              "docs/PRD.md#6. Technical Architecture",
+              "docs/features/apim-connectivity-scope.md#APIM-FR-02"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.apim-1",
+          "inputs": [],
+          "timeoutMs": 1200000
+        },
+        {
+          "id": "APIM-2",
+          "title": "Implement DefaultAzureCredential ARM token provider",
+          "description": "Implement an ArmTokenProvider using Azure.Identity DefaultAzureCredential that acquires bearer tokens scoped to https://management.azure.com/.default, cached until near expiry. Validate against the local az CLI login context (integration test skipped/inconclusive when az CLI is not logged in, but unit-testable token-cache expiry logic must be covered without a live Azure call). Do not store any credential or token in configuration, logs, or persistent storage. Out of scope: resource discovery (next task).",
+          "ownerAgent": "apim-connectivity-engineer",
+          "dependencies": [
+            "APIM-1"
+          ],
+          "expectedOutputs": [
+            "src/server/ApimPolicyVisualizer.Api/Azure/ArmTokenProvider.cs",
+            "tests/ApimPolicyVisualizer.Api.Tests/ArmTokenProviderTests.cs"
+          ],
+          "validationCommands": [
+            "dotnet test tests/ApimPolicyVisualizer.Api.Tests/ApimPolicyVisualizer.Api.Tests.csproj --filter FullyQualifiedName~ArmTokenProviderTests"
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "APIM-FR-01: The backend authenticates to Azure Resource Manager using Azure.Identity DefaultAzureCredential, honoring the current az CLI login context in local development, with no client secrets or connection strings containing credentials in configuration."
+            ],
+            "acceptanceCriteria": [
+              "Token cache reuses a cached token until it is within 5 minutes of expiry, then refreshes",
+              "No credential, secret, or token value is written to logs (verified by test asserting log output does not contain the raw token)"
+            ],
+            "constraints": [
+              "VIS-SEC-01: The application must never store Azure credentials or secrets in configuration, code, or logs; all Azure access uses DefaultAzureCredential resolved from the local environment (az CLI, environment, managed identity) at request time."
+            ],
+            "references": [
+              "docs/PRD.md#8. Security and Privacy",
+              "docs/features/apim-connectivity-scope.md#APIM-FR-01",
+              "docs/PRD.md#VIS-SEC-01"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.apim-2",
+          "inputs": [
+            "work.apim-1"
+          ],
+          "timeoutMs": 1200000
+        },
+        {
+          "id": "APIM-3",
+          "title": "Implement APIM scope discovery service and endpoint",
+          "description": "Implement ScopeDiscoveryService using Azure.ResourceManager.ApiManagement to resolve the configured APIM service (auto-resolving subscriptionId/resourceGroupName via Azure Resource Graph when not explicitly configured, matching by serviceName) and list its products, and per-product/per-API operations. Expose GET /api/scopes returning a Global entry plus the discovered hierarchy as JSON, using the ArmTokenProvider from APIM-2 for authentication. Return HTTP 404 with a descriptive message when the service cannot be found, and HTTP 403 with a descriptive message on authorization failure. Out of scope: effective policy retrieval (Feature: Effective Policy Retrieval and Flow Graph Model).",
+          "ownerAgent": "apim-connectivity-engineer",
+          "dependencies": [
+            "APIM-2"
+          ],
+          "expectedOutputs": [
+            "src/server/ApimPolicyVisualizer.Api/Scopes/ScopeDiscoveryService.cs",
+            "src/server/ApimPolicyVisualizer.Api/Scopes/ScopesController.cs",
+            "tests/ApimPolicyVisualizer.Api.Tests/ScopeDiscoveryServiceTests.cs"
+          ],
+          "validationCommands": [
+            "dotnet test tests/ApimPolicyVisualizer.Api.Tests/ApimPolicyVisualizer.Api.Tests.csproj --filter FullyQualifiedName~ScopeDiscoveryServiceTests"
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "APIM-FR-02: The backend resolves the target APIM service from configuration (subscriptionId, resourceGroupName, serviceName), defaulting serviceName to \"apim-zlyway6g7icoy\"; when subscriptionId/resourceGroupName are not explicitly configured, it resolves them via an Azure Resource Graph query scoped to subscriptions visible to the current credential, matching by service name, and returns a clear 4xx error describing the failure if the service cannot be found or the caller lacks read permission.",
+              "APIM-FR-03: The backend exposes GET /api/scopes returning a Global scope entry plus the full list of products, and per-product/per-API operations, for the configured APIM instance, to drive dynamic scope selection in the UI."
+            ],
+            "acceptanceCriteria": [
+              "GET /api/scopes returns a Global entry plus products, and operations per API, for a mocked APIM client",
+              "Service-not-found returns HTTP 404 with a descriptive error body",
+              "Authorization failure returns HTTP 403 with a descriptive error body"
+            ],
+            "constraints": [],
+            "references": [
+              "docs/PRD.md#6.3 Key APIs / Interfaces",
+              "docs/features/apim-connectivity-scope.md#APIM-FR-02",
+              "docs/features/apim-connectivity-scope.md#APIM-FR-03"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.apim-3",
+          "inputs": [
+            "work.apim-2"
+          ],
+          "timeoutMs": 1200000
+        }
+      ]
+    },
+    {
+      "id": "EFFECTIVE-POLICY-RETRIEVAL-AND-FLOW-GRAPH-MODEL-1",
+      "title": "Phase 1: Effective Policy Pipeline",
+      "feature": "Effective Policy Retrieval and Flow Graph Model",
+      "description": "```forge-task {   \"id\": \"POL-1\",",
+      "ownerAgents": [
+        "policy-parsing-engineer"
+      ],
+      "dependencies": [
+        "AZURE-APIM-CONNECTIVITY-AND-SCOPE-DISCOVERY-1"
+      ],
+      "approvalRequired": true,
+      "tasks": [
+        {
+          "id": "POL-1",
+          "title": "Implement effective policy XML retrieval client",
+          "description": "Implement EffectivePolicyClient that, given a scope descriptor (global/product/api/operation with the relevant resource IDs from Feature: Azure APIM Connectivity and Scope Discovery), issues an authenticated HttpClient GET against the ARM policy endpoint with format=rawxml&effective=true and an explicitly pinned api-version, using the ArmTokenProvider for the bearer token, returning the raw XML string. Map ARM 404/403 responses to typed NotFound/Forbidden results with descriptive messages. Out of scope: XML parsing into a graph (next tasks).",
+          "ownerAgent": "policy-parsing-engineer",
+          "dependencies": [
+            "APIM-2",
+            "APIM-3"
+          ],
+          "expectedOutputs": [
+            "src/server/ApimPolicyVisualizer.Api/Policy/EffectivePolicyClient.cs",
+            "tests/ApimPolicyVisualizer.Api.Tests/EffectivePolicyClientTests.cs"
+          ],
+          "validationCommands": [
+            "dotnet test tests/ApimPolicyVisualizer.Api.Tests/ApimPolicyVisualizer.Api.Tests.csproj --filter FullyQualifiedName~EffectivePolicyClientTests"
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "POL-FR-01: The backend retrieves the effective policy XML for a given scope (global, product, api, or operation) via an authenticated ARM REST call using format=rawxml&effective=true against the appropriate policy endpoint, reusing the ArmTokenProvider credential from Azure APIM Connectivity and Scope Discovery, and pins an explicit ARM api-version."
+            ],
+            "acceptanceCriteria": [
+              "Request URL for each scope kind includes format=rawxml&effective=true and the pinned api-version",
+              "ARM 404 maps to a typed NotFound result with a descriptive message",
+              "ARM 403 maps to a typed Forbidden result with a descriptive message"
+            ],
+            "constraints": [
+              "VIS-SEC-02: Retrieved policy XML and derived flow graphs must not be persisted to disk, a database, or any cache with a lifetime beyond the current HTTP request/response and browser session; the tool has no persistence layer."
+            ],
+            "references": [
+              "docs/PRD.md#5. Research Findings",
+              "docs/features/effective-policy-flow-model.md#POL-FR-01",
+              "docs/PRD.md#VIS-SEC-02"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.pol-1",
+          "inputs": [
+            "work.apim-2",
+            "work.apim-3",
+            "work.apim-1"
+          ],
+          "timeoutMs": 1200000
+        },
+        {
+          "id": "POL-2",
+          "title": "Parse linear policy sections into ordered step graph",
+          "description": "Implement PolicyFlowParser that parses the inbound, backend, outbound, and on-error sections of effective policy XML into ordered step nodes, one node per top-level policy statement, tagged with its owning section and preserving document order. Non-control-flow elements (e.g. set-header, rate-limit, set-variable, base) become simple step nodes labeled with the element name and key attributes. Do not implement choose/when/otherwise/retry branching yet (next task); unrecognized elements still become a generic labeled step node rather than failing parsing. Never evaluate expression text (VIS-SEC-03); capture it verbatim as node display data.",
+          "ownerAgent": "policy-parsing-engineer",
+          "dependencies": [
+            "POL-1"
+          ],
+          "expectedOutputs": [
+            "src/server/ApimPolicyVisualizer.Api/Policy/PolicyFlowParser.cs",
+            "tests/ApimPolicyVisualizer.Api.Tests/PolicyFlowParserTests.cs"
+          ],
+          "validationCommands": [
+            "dotnet test tests/ApimPolicyVisualizer.Api.Tests/ApimPolicyVisualizer.Api.Tests.csproj --filter FullyQualifiedName~PolicyFlowParserTests"
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "POL-FR-02: The parser converts the inbound, backend, outbound, and on-error policy sections into an ordered directed graph of step nodes with unique IDs, each tagged with its owning section, preserving document order within each section."
+            ],
+            "acceptanceCriteria": [
+              "A sample policy with set-header, rate-limit, and base elements across all four sections produces one ordered step node per element, tagged with its section, in source document order",
+              "An unrecognized policy element produces a generic labeled step node instead of a parse failure",
+              "Expression text inside @(...) is captured verbatim on the node and never evaluated"
+            ],
+            "constraints": [
+              "VIS-SEC-03: The backend must never evaluate or execute policy expression bodies (content inside @(...) or <set-variable>/<choose> conditions); expression text is treated as opaque display data only."
+            ],
+            "references": [
+              "docs/features/effective-policy-flow-model.md#3. Functional Requirements",
+              "docs/features/effective-policy-flow-model.md#POL-FR-02",
+              "docs/PRD.md#VIS-SEC-03"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.pol-2",
+          "inputs": [
+            "work.pol-1",
+            "work.apim-1",
+            "work.apim-2",
+            "work.apim-3"
+          ],
+          "timeoutMs": 1200000
+        },
+        {
+          "id": "POL-3",
+          "title": "Parse branching, retry, and error-path control flow",
+          "description": "Extend the flow graph with PolicyControlFlowParser, which post-processes the step nodes from POL-2 to represent <choose>/<when>/<otherwise> as branch nodes with labeled conditional edges (condition attribute text as the edge label, verbatim and unevaluated), and <retry> plus on-error content as explicit loop-back/error-path edges, preserving nesting depth for nested choose/retry blocks. Do not change the linear step parsing behavior established in POL-2.",
+          "ownerAgent": "policy-parsing-engineer",
+          "dependencies": [
+            "POL-2"
+          ],
+          "expectedOutputs": [
+            "src/server/ApimPolicyVisualizer.Api/Policy/PolicyControlFlowParser.cs",
+            "tests/ApimPolicyVisualizer.Api.Tests/PolicyControlFlowParserTests.cs"
+          ],
+          "validationCommands": [
+            "dotnet test tests/ApimPolicyVisualizer.Api.Tests/ApimPolicyVisualizer.Api.Tests.csproj --filter FullyQualifiedName~PolicyControlFlowParserTests"
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "POL-FR-03: The parser represents <choose>/<when>/<otherwise> constructs as branch nodes with labeled conditional edges (condition text as the label), and <retry> and on-error blocks as explicit loop-back or error-path edges, preserving nesting depth in the graph structure.",
+              "POL-FR-05: The parser must never execute, evaluate, or interpret policy expression bodies (C# code inside @(...) or condition attributes); it captures such text verbatim as opaque display data on the corresponding node/edge only."
+            ],
+            "acceptanceCriteria": [
+              "A choose/when/otherwise sample produces one branch node with one labeled conditional edge per when clause plus an otherwise edge",
+              "A nested choose inside a when clause preserves correct nesting depth in the resulting graph",
+              "A retry block and an on-error block each produce an explicit loop-back/error-path edge distinguishable from normal sequential edges",
+              "Condition attribute text is captured verbatim on edges and never evaluated"
+            ],
+            "constraints": [],
+            "references": [
+              "docs/features/effective-policy-flow-model.md#3. Functional Requirements",
+              "docs/features/effective-policy-flow-model.md#POL-FR-03",
+              "docs/features/effective-policy-flow-model.md#POL-FR-05"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.pol-3",
+          "inputs": [
+            "work.pol-2",
+            "work.apim-1",
+            "work.apim-2",
+            "work.apim-3"
+          ],
+          "timeoutMs": 1200000
+        },
+        {
+          "id": "POL-4",
+          "title": "Expose effective policy flow graph HTTP endpoint",
+          "description": "Implement PolicyFlowController exposing GET /api/policy/effective-flow?scope={scopeId}, wiring EffectivePolicyClient (POL-1) and PolicyFlowParser + PolicyControlFlowParser (POL-2, POL-3) together: resolve the scope via the Feature: Azure APIM Connectivity and Scope Discovery scope catalog, fetch the effective XML, parse it, and return the combined graph (nodes, edges, section metadata) as JSON. Return HTTP 400 for an unknown scopeId, and propagate 404/403 from the underlying client. Out of scope: any frontend rendering.",
+          "ownerAgent": "policy-parsing-engineer",
+          "dependencies": [
+            "POL-3",
+            "APIM-3"
+          ],
+          "expectedOutputs": [
+            "src/server/ApimPolicyVisualizer.Api/Policy/PolicyFlowController.cs",
+            "tests/ApimPolicyVisualizer.Api.Tests/PolicyFlowControllerTests.cs"
+          ],
+          "validationCommands": [
+            "dotnet test tests/ApimPolicyVisualizer.Api.Tests/ApimPolicyVisualizer.Api.Tests.csproj --filter FullyQualifiedName~PolicyFlowControllerTests"
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "POL-FR-04: The backend exposes GET /api/policy/effective-flow?scope={scopeId} returning the combined flow graph as JSON (nodes, edges, and section metadata) for the requested scope, returning HTTP 404/403 with descriptive errors mirroring the underlying retrieval failure."
+            ],
+            "acceptanceCriteria": [
+              "GET /api/policy/effective-flow?scope=<valid> returns 200 with a JSON graph containing nodes, edges, and section metadata for a mocked pipeline",
+              "An unknown scopeId returns HTTP 400 with a descriptive message",
+              "A 404/403 from EffectivePolicyClient propagates as the same status with its descriptive message"
+            ],
+            "constraints": [],
+            "references": [
+              "docs/PRD.md#6.3 Key APIs / Interfaces",
+              "docs/features/effective-policy-flow-model.md#POL-FR-04"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.pol-4",
+          "inputs": [
+            "work.pol-3",
+            "work.apim-3",
+            "work.apim-1",
+            "work.apim-2"
+          ],
+          "timeoutMs": 1200000
+        }
+      ]
+    },
+    {
+      "id": "POLICY-FLOW-VISUALIZATION-WEB-UI-1",
+      "title": "Phase 1: Web App Foundation and Scope Selection",
+      "feature": "Policy Flow Visualization Web UI",
+      "description": "```forge-task {   \"id\": \"UI-1\",",
+      "ownerAgents": [
+        "frontend-visualization-engineer"
+      ],
+      "dependencies": [
+        "AZURE-APIM-CONNECTIVITY-AND-SCOPE-DISCOVERY-1",
+        "EFFECTIVE-POLICY-RETRIEVAL-AND-FLOW-GRAPH-MODEL-1"
+      ],
+      "approvalRequired": true,
+      "tasks": [
+        {
+          "id": "UI-1",
+          "title": "Scaffold React + Vite frontend with API client and layout shell",
+          "description": "Scaffold the src/web React 19 + TypeScript app using Vite, with an API client module wrapping fetch calls to the backend (base URL from a Vite env variable), and a base two-pane layout shell (side panel + canvas). Configure Vitest + React Testing Library. Add a smoke test rendering the App shell. Out of scope: scope selector and diagram content (later tasks).",
+          "ownerAgent": "frontend-visualization-engineer",
+          "dependencies": [
+            "APIM-1"
+          ],
+          "expectedOutputs": [
+            "src/web/package.json",
+            "src/web/vite.config.ts",
+            "src/web/src/main.tsx",
+            "src/web/src/App.tsx",
+            "src/web/src/api/client.ts",
+            "src/web/src/App.test.tsx"
+          ],
+          "validationCommands": [
+            "npm --prefix src/web install",
+            "npm --prefix src/web run test -- run src/App.test.tsx"
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "UI-FR-03: The layout targets desktop viewports of at least 1280px width only; no mobile breakpoints, touch gestures, or responsive collapse behavior are implemented (see VIS-CONSTRAINT-01)."
+            ],
+            "acceptanceCriteria": [
+              "App shell renders a side panel region and a canvas region",
+              "vitest discovers and runs at least one test in App.test.tsx and fails the run if zero tests are selected"
+            ],
+            "constraints": [
+              "Desktop-only layout; do not add mobile breakpoints (VIS-CONSTRAINT-01)",
+              "VIS-CONSTRAINT-01: No mobile/responsive layout is required; the UI targets desktop browser viewports (>=1280px) only."
+            ],
+            "references": [
+              "docs/PRD.md#6.2 Project Structure",
+              "docs/features/policy-flow-visualization-ui.md#UI-FR-03",
+              "docs/PRD.md#VIS-CONSTRAINT-01"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.ui-1",
+          "inputs": [
+            "work.apim-1",
+            "work.apim-2",
+            "work.apim-3",
+            "work.pol-1",
+            "work.pol-2",
+            "work.pol-3",
+            "work.pol-4"
+          ],
+          "timeoutMs": 1200000
+        },
+        {
+          "id": "UI-2",
+          "title": "Implement cascading scope selector",
+          "description": "Implement the ScopeSelector component consuming GET /api/scopes through the API client from UI-1, presenting Global, Product, API, and Operation levels as a cascading selector where any level (not only leaves) can be chosen as the active scope, emitting the selected scopeId to the parent App. Handle the loading and error states for the /api/scopes call itself.",
+          "ownerAgent": "frontend-visualization-engineer",
+          "dependencies": [
+            "UI-1",
+            "APIM-3"
+          ],
+          "expectedOutputs": [
+            "src/web/src/components/ScopeSelector.tsx",
+            "src/web/src/components/ScopeSelector.test.tsx"
+          ],
+          "validationCommands": [
+            "npm --prefix src/web run test -- run src/components/ScopeSelector.test.tsx"
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "UI-FR-01: The scope selector consumes GET /api/scopes and lets the user cascade through Global, then Product, then API, then Operation, always allowing selection at any level (Global/Product/API/Operation) since effective policy can be calculated at each."
+            ],
+            "acceptanceCriteria": [
+              "Selecting a Product, API, or Operation each independently emits a valid scopeId to the parent",
+              "A failed /api/scopes call renders a visible error message instead of an empty/broken selector"
+            ],
+            "constraints": [],
+            "references": [
+              "docs/features/policy-flow-visualization-ui.md#4. UI / Interaction Design",
+              "docs/features/policy-flow-visualization-ui.md#UI-FR-01"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.ui-2",
+          "inputs": [
+            "work.ui-1",
+            "work.apim-3",
+            "work.apim-1",
+            "work.apim-2",
+            "work.pol-1",
+            "work.pol-2",
+            "work.pol-3",
+            "work.pol-4"
+          ],
+          "timeoutMs": 1200000
+        }
+      ]
+    },
+    {
+      "id": "POLICY-FLOW-VISUALIZATION-WEB-UI-2",
+      "title": "Phase 2: Flow Diagram Rendering and Visual Polish",
+      "feature": "Policy Flow Visualization Web UI",
+      "description": "```forge-task {   \"id\": \"UI-3\",",
+      "ownerAgents": [
+        "frontend-visualization-engineer"
+      ],
+      "dependencies": [
+        "POLICY-FLOW-VISUALIZATION-WEB-UI-1"
+      ],
+      "approvalRequired": true,
+      "tasks": [
+        {
+          "id": "UI-3",
+          "title": "Render effective policy flow diagram",
+          "description": "Implement PolicyFlowDiagram using @xyflow/react, converting the GET /api/policy/effective-flow response (nodes/edges/section metadata) into React Flow nodes and edges, with per-section node styling (inbound/backend/outbound/on-error) and distinct edge styling for sequential, branch-conditional, retry loop-back, and error-path edges, with pan/zoom controls enabled. Handle loading and error states (permission denied, scope not found, parse failure) per UI-FR-04, including a control to return to scope selection.",
+          "ownerAgent": "frontend-visualization-engineer",
+          "dependencies": [
+            "UI-2",
+            "POL-4"
+          ],
+          "expectedOutputs": [
+            "src/web/src/components/PolicyFlowDiagram.tsx",
+            "src/web/src/components/PolicyFlowDiagram.test.tsx"
+          ],
+          "validationCommands": [
+            "npm --prefix src/web run test -- run src/components/PolicyFlowDiagram.test.tsx"
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "UI-FR-02: The diagram view renders the GET /api/policy/effective-flow graph via @xyflow/react with visually distinct node styles per section (inbound/backend/outbound/on-error) and distinct edge styles for sequential, branch-conditional, retry loop-back, and error-path edges, with pan and zoom controls.",
+              "UI-FR-04: Loading and error states (permission denied, scope not found, parse failure) are surfaced with a clear, human-readable message sourced from the backend's error response body, with a way to return to scope selection.",
+              "VIS-NFR-01: The effective-policy fetch-to-render round trip completes in under 5 seconds for policy XML up to 200 KB on a typical local development machine."
+            ],
+            "acceptanceCriteria": [
+              "A sample flow graph with all four sections renders one styled node per section per node in the fixture",
+              "Branch, retry, and error edges each render with a visually distinct style from a normal sequential edge",
+              "A backend error response renders its descriptive message and a working back-to-selection control",
+              "Manual timing check recorded during acceptance testing confirms the fetch-to-render round trip stays under 5s for a ~200 KB sample policy, per VIS-NFR-01"
+            ],
+            "constraints": [],
+            "references": [
+              "docs/features/policy-flow-visualization-ui.md#4. UI / Interaction Design",
+              "docs/features/policy-flow-visualization-ui.md#UI-FR-02",
+              "docs/features/policy-flow-visualization-ui.md#UI-FR-04",
+              "docs/PRD.md#VIS-NFR-01"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.ui-3",
+          "inputs": [
+            "work.ui-2",
+            "work.pol-4",
+            "work.ui-1"
+          ],
+          "timeoutMs": 1200000
+        },
+        {
+          "id": "UI-4",
+          "title": "Apply desktop visual theme and automated accessibility checks",
+          "description": "Apply a cohesive visual theme (typography, spacing, color palette) across the App shell, ScopeSelector, and PolicyFlowDiagram, targeting a minimum 1280px desktop viewport with no mobile breakpoints. Add an automated axe-core accessibility test covering the scope-selection and diagram views, asserting zero serious/critical violations.",
+          "ownerAgent": "frontend-visualization-engineer",
+          "dependencies": [
+            "UI-3"
+          ],
+          "expectedOutputs": [
+            "src/web/src/styles/theme.css",
+            "src/web/src/components/PolicyFlowDiagram.a11y.test.tsx"
+          ],
+          "validationCommands": [
+            "npm --prefix src/web run test -- run src/components/PolicyFlowDiagram.a11y.test.tsx"
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "UI-FR-03: The layout targets desktop viewports of at least 1280px width only; no mobile breakpoints, touch gestures, or responsive collapse behavior are implemented (see VIS-CONSTRAINT-01).",
+              "VIS-A11Y-01: The web UI's scope-selection and diagram views must pass an automated axe-core accessibility scan with zero serious or critical violations."
+            ],
+            "acceptanceCriteria": [
+              "The theme applies consistently to the shell, selector, and diagram at >=1280px width",
+              "axe-core reports zero serious or critical violations on the rendered scope-selection and diagram views"
+            ],
+            "constraints": [
+              "No mobile breakpoints or responsive collapse behavior are introduced"
+            ],
+            "references": [
+              "docs/PRD.md#9. Accessibility",
+              "docs/features/policy-flow-visualization-ui.md#UI-FR-03",
+              "docs/PRD.md#VIS-A11Y-01"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.ui-4",
+          "inputs": [
+            "work.ui-3",
+            "work.ui-1",
+            "work.ui-2"
+          ],
+          "timeoutMs": 1200000
+        },
+        {
+          "id": "UI-5",
+          "title": "Human sign-off on visual appeal",
+          "description": "A human reviewer visually inspects the themed app (App shell, scope selector, and policy flow diagram) at desktop widths >=1280px and confirms it meets a subjective bar of being visually polished and professional, recording findings in the review file.",
+          "dependencies": [
+            "UI-4"
+          ],
+          "expectedOutputs": [],
+          "validationCommands": [],
+          "contract": {
+            "version": 1,
+            "kind": "human-review",
+            "requirements": [
+              "UI-US-03: As a platform engineer, I want a polished, professional-looking desktop UI so it is pleasant to use during demos and reviews."
+            ],
+            "acceptanceCriteria": [
+              "A human reviewer confirms the app looks visually polished and professional at desktop widths >=1280px, or files specific follow-up defects"
+            ],
+            "constraints": [],
+            "references": [
+              "docs/features/policy-flow-visualization-ui.md#4. UI / Interaction Design"
+            ],
+            "reviewFile": "docs/reviews/ui-visual-appeal.json"
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.ui-5",
+          "inputs": [
+            "work.ui-4",
+            "work.ui-1",
+            "work.ui-2"
+          ],
+          "timeoutMs": 1200000
+        }
+      ]
+    }
+  ],
+  "warnings": [
+    "Team validation: 2 orphan agent(s) own no tasks: project-architect, qa-test-engineer"
+  ],
+  "responsibilityMatrixPath": "C:\\repos\\nabeelp\\ai-playground\\docs\\agent-responsibility-matrix.md"
+}
